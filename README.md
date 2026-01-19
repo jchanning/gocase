@@ -1,4 +1,19 @@
-# GoCaSE - Test Preparation Platform
+# GoCaSE - Go Comprehensive Assessment System
+
+<div align="center">
+
+[![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/jchanning/gocase/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/jchanning/gocase/actions)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)](https://hub.docker.com)
+
+**A comprehensive online assessment platform for educational institutions**
+
+[Features](#features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
+
+</div>
+
+---
 
 A comprehensive multiple-choice question test platform for students preparing for GCSE and A-Level exams. Built with Go, Chi router, PostgreSQL, HTMX, and TailwindCSS. Optimized for deployment on Oracle Cloud Free Tier ARM64 instances.
 
