@@ -1,0 +1,126 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto">
+    <!-- Results Header -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+        <div class="text-center">
+            <div class="text-6xl mb-4">
+                {{if .Passed}}🎉{{else}}📝{{end}}
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Test Results</h2>
+            <p class="text-xl text-gray-600 mb-4">{{.Test.Title}}</p>
+            
+            <div class="flex justify-center items-center gap-8 mt-6">
+                <div>
+                    <p class="text-gray-500 text-sm">Your Score</p>
+                    <p class="text-4xl font-bold {{if .Passed}}text-green-600{{else}}text-orange-600{{end}}">
+                        {{.Attempt.Score}}/{{.Attempt.TotalPoints}}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Percentage</p>
+                    <p class="text-4xl font-bold {{if .Passed}}text-green-600{{else}}text-orange-600{{end}}">
+                        {{printf "%.0f" .Percentage}}%
+                    </p>
+                </div>
+                <div>
+                    <p class="text-gray-500 text-sm">Status</p>
+                    <p class="text-2xl font-bold {{if .Passed}}text-green-600{{else}}text-red-600{{end}}">
+                        {{if .Passed}}PASSED ✅{{else}}FAILED ❌{{end}}
+                    </p>
+                </div>
+            </div>
+            
+            {{if .Attempt.TimeTakenSeconds}}
+            <p class="mt-4 text-gray-600">
+                Time taken: {{div .Attempt.TimeTakenSeconds 60}} minutes {{mod .Attempt.TimeTakenSeconds 60}} seconds
+            </p>
+            {{end}}
+            
+            {{if .Passed}}
+            <div class="mt-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+                <p class="text-green-800">
+                    <strong>Congratulations!</strong> You've passed this test. Keep up the great work!
+                </p>
+            </div>
+            {{else}}
+            <div class="mt-6 p-4 bg-orange-50 border-l-4 border-orange-500 rounded">
+                <p class="text-orange-800">
+                    <strong>Don't give up!</strong> Review the questions below and try again.
+                    Passing score: {{.Test.PassingScore}}%
+                </p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Question Review -->
+    {{if or (eq .Test.Difficulty "Easy") (eq .Test.Difficulty "Medium")}}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">Question Review</h3>
+        
+        {{range $index, $question := .Test.Questions}}
+        {{$answer := index $.Answers $question.ID}}
+        <div class="mb-6 pb-6 border-b last:border-b-0">
+            <div class="flex items-start mb-3">
+                <span class="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                    {{add $index 1}}
+                </span>
+                <div class="flex-grow">
+                    <p class="text-lg font-medium text-gray-800">{{$question.QuestionText}}</p>
+                    {{if $question.ImageURL}}
+                    <img src="{{$question.ImageURL}}" alt="Question image" class="mt-2 max-w-md rounded border">
+                    {{end}}
+                </div>
+                {{if $answer}}
+                    {{if $answer.IsCorrect}}
+                    <span class="text-2xl">✅</span>
+                    {{else}}
+                    <span class="text-2xl">❌</span>
+                    {{end}}
+                {{end}}
+            </div>
+            
+            <div class="space-y-2 ml-11">
+                {{range $option := $question.Options}}
+                <div class="p-3 border-2 rounded-lg
+                    {{if $option.IsCorrect}}border-green-500 bg-green-50
+                    {{else if and $answer $answer.SelectedOptionID (eq $answer.SelectedOptionID $option.ID)}}border-red-500 bg-red-50
+                    {{else}}border-gray-200{{end}}">
+                    <div class="flex items-center justify-between">
+                        <span class="flex-grow {{if $option.IsCorrect}}font-semibold text-green-800{{end}}">
+                            {{$option.OptionText}}
+                        </span>
+                        {{if $option.IsCorrect}}
+                        <span class="text-green-600 font-semibold">✓ Correct Answer</span>
+                        {{else if and $answer $answer.SelectedOptionID (eq $answer.SelectedOptionID $option.ID)}}
+                        <span class="text-red-600 font-semibold">✗ Your Answer</span>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="bg-white rounded-lg shadow-md p-6 text-center">
+        <p class="text-gray-600">
+            For Hard difficulty tests, detailed answers are not shown immediately.
+            Please review with your teacher.
+        </p>
+    </div>
+    {{end}}
+
+    <div class="mt-8 flex justify-center gap-4">
+        <a href="/tests" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+            Back to Tests
+        </a>
+        <a href="/test/start?id={{.Test.ID}}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+            Retake Test
+        </a>
+        <a href="/dashboard" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+            Dashboard
+        </a>
+    </div>
+</div>
+{{end}}

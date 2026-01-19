@@ -1,0 +1,174 @@
+{{define "content"}}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Upload Test</h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Upload Form -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Upload JSON Test File</h2>
+            
+            <div id="upload-status" class="mb-4"></div>
+            
+            <div class="mb-4">
+                <label for="json-file" class="block text-sm font-medium text-gray-700 mb-2">Select JSON File</label>
+                <input type="file" id="json-file" accept=".json" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Or Paste JSON</label>
+                <textarea id="json-input" rows="10" placeholder='{"title": "My Test", ...}'
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"></textarea>
+            </div>
+            
+            <button onclick="validateAndUpload()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+                Validate & Upload Test
+            </button>
+            
+            <div id="validation-result" class="mt-4"></div>
+        </div>
+        
+        <!-- Example JSON Structure -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Example JSON Structure</h2>
+            
+            <pre class="bg-gray-50 p-4 rounded border overflow-x-auto text-xs"><code>{
+  "title": "Mathematics - Algebra Basics",
+  "description": "Test covering basic algebra concepts",
+  "subject": "Mathematics",
+  "topic": "Algebra",
+  "exam_standard": "gcse",
+  "difficulty": "easy",
+  "time_limit_minutes": 30,
+  "passing_score": 60,
+  "questions": [
+    {
+      "question_text": "What is 2 + 2?",
+      "options": ["3", "4", "5", "6"],
+      "correct_index": 1,
+      "points": 1,
+      "image_url": ""
+    },
+    {
+      "question_text": "Solve: x + 5 = 10",
+      "options": ["5", "10", "15", "20"],
+      "correct_index": 0,
+      "points": 2,
+      "image_url": ""
+    }
+  ]
+}</code></pre>
+            
+            <div class="mt-4 space-y-2 text-sm text-gray-600">
+                <h3 class="font-semibold text-gray-800">Field Descriptions:</h3>
+                <ul class="list-disc list-inside space-y-1">
+                    <li><strong>exam_standard:</strong> gcse, a-level, ib, or other</li>
+                    <li><strong>difficulty:</strong> easy, medium, hard, or expert</li>
+                    <li><strong>time_limit_minutes:</strong> Time allowed (in minutes)</li>
+                    <li><strong>passing_score:</strong> Minimum score to pass (%)</li>
+                    <li><strong>correct_index:</strong> Index of correct option (0-3)</li>
+                    <li><strong>points:</strong> Points awarded for correct answer</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('json-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('json-input').value = event.target.result;
+        };
+        reader.readAsText(file);
+    }
+});
+
+function validateAndUpload() {
+    const jsonInput = document.getElementById('json-input').value;
+    const validationResult = document.getElementById('validation-result');
+    const uploadStatus = document.getElementById('upload-status');
+    
+    if (!jsonInput.trim()) {
+        validationResult.innerHTML = '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">Please provide JSON content</div>';
+        return;
+    }
+    
+    // Validate JSON structure
+    try {
+        const testData = JSON.parse(jsonInput);
+        
+        // Validate required fields
+        const errors = [];
+        if (!testData.title) errors.push('title is required');
+        if (!testData.subject) errors.push('subject is required');
+        if (!testData.exam_standard) errors.push('exam_standard is required');
+        if (!testData.difficulty) errors.push('difficulty is required');
+        if (!testData.questions || testData.questions.length === 0) errors.push('at least one question is required');
+        
+        // Validate questions
+        if (testData.questions) {
+            testData.questions.forEach((q, i) => {
+                if (!q.question_text) errors.push(`Question ${i+1}: question_text is required`);
+                if (!q.options || q.options.length !== 4) errors.push(`Question ${i+1}: must have exactly 4 options`);
+                if (q.correct_index < 0 || q.correct_index > 3) errors.push(`Question ${i+1}: correct_index must be 0-3`);
+                if (!q.points || q.points < 1) errors.push(`Question ${i+1}: points must be >= 1`);
+            });
+        }
+        
+        if (errors.length > 0) {
+            validationResult.innerHTML = `<div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                <strong>Validation Errors:</strong>
+                <ul class="list-disc list-inside mt-2">
+                    ${errors.map(e => `<li>${e}</li>`).join('')}
+                </ul>
+            </div>`;
+            return;
+        }
+        
+        validationResult.innerHTML = '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">✓ JSON structure is valid!</div>';
+        
+        // Upload test
+        uploadStatus.innerHTML = '<div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded">Uploading test...</div>';
+        
+        fetch('/teacher/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: jsonInput
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                uploadStatus.innerHTML = `<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    ✓ Test uploaded successfully! Test ID: ${data.test_id}
+                </div>`;
+                document.getElementById('json-input').value = '';
+                document.getElementById('json-file').value = '';
+                setTimeout(() => {
+                    window.location.href = '/teacher/dashboard';
+                }, 2000);
+            } else {
+                uploadStatus.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    Error: ${data.message || 'Upload failed'}
+                </div>`;
+            }
+        })
+        .catch(error => {
+            uploadStatus.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                Error uploading test: ${error.message}
+            </div>`;
+        });
+        
+    } catch (e) {
+        validationResult.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            Invalid JSON syntax: ${e.message}
+        </div>`;
+    }
+}
+</script>
+{{end}}

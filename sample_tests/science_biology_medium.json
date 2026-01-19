@@ -1,0 +1,100 @@
+{
+  "title": "GCSE Science - Biology Cells",
+  "description": "Test your knowledge of cell structure and function",
+  "subject": "Science",
+  "topic": "Biology",
+  "exam_standard": "GCSE",
+  "difficulty": "Medium",
+  "time_limit_minutes": 15,
+  "passing_score": 70,
+  "questions": [
+    {
+      "question_text": "What is the function of mitochondria in a cell?",
+      "points": 2,
+      "options": [
+        "Protein synthesis",
+        "Energy production",
+        "Photosynthesis",
+        "Cell division"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Which organelle controls what enters and leaves the cell?",
+      "points": 2,
+      "options": [
+        "Nucleus",
+        "Cell membrane",
+        "Cytoplasm",
+        "Vacuole"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "What is the main difference between plant and animal cells?",
+      "points": 2,
+      "options": [
+        "Plant cells have mitochondria",
+        "Animal cells have a nucleus",
+        "Plant cells have a cell wall and chloroplasts",
+        "Animal cells are larger"
+      ],
+      "correct_index": 2
+    },
+    {
+      "question_text": "Where does photosynthesis occur in plant cells?",
+      "points": 2,
+      "options": [
+        "Nucleus",
+        "Mitochondria",
+        "Chloroplasts",
+        "Ribosomes"
+      ],
+      "correct_index": 2
+    },
+    {
+      "question_text": "What is the function of the nucleus?",
+      "points": 2,
+      "options": [
+        "Energy production",
+        "Contains genetic material and controls cell activities",
+        "Protein synthesis",
+        "Waste removal"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Which cells have a cell wall?",
+      "points": 2,
+      "options": [
+        "Only animal cells",
+        "Only plant cells",
+        "Both plant and animal cells",
+        "Neither plant nor animal cells"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "What is diffusion?",
+      "points": 2,
+      "options": [
+        "Active transport requiring energy",
+        "Movement of water across a membrane",
+        "Movement of particles from high to low concentration",
+        "Cell division process"
+      ],
+      "correct_index": 2
+    },
+    {
+      "question_text": "What are ribosomes responsible for?",
+      "points": 2,
+      "options": [
+        "Energy production",
+        "Protein synthesis",
+        "DNA replication",
+        "Waste storage"
+      ],
+      "correct_index": 1
+    }
+  ]
+}

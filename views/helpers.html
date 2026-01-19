@@ -1,0 +1,13 @@
+{{/* Template helper functions */}}
+
+{{/* Add two numbers */}}
+{{define "add"}}{{add .a .b}}{{end}}
+
+{{/* Divide two numbers */}}
+{{define "div"}}{{div .a .b}}{{end}}
+
+{{/* Modulo operation */}}
+{{define "mod"}}{{mod .a .b}}{{end}}
+
+{{/* Format percentage */}}
+{{define "percentage"}}{{printf "%.1f" .}}%{{end}}

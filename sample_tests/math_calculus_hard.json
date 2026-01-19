@@ -1,0 +1,78 @@
+{
+  "title": "A-Level Mathematics - Calculus",
+  "description": "Advanced calculus concepts including differentiation and integration",
+  "subject": "Mathematics",
+  "topic": "Calculus",
+  "exam_standard": "A-Level",
+  "difficulty": "Hard",
+  "time_limit_minutes": 20,
+  "passing_score": 75,
+  "questions": [
+    {
+      "question_text": "What is the derivative of x³ + 2x² - 5x + 3?",
+      "points": 3,
+      "options": [
+        "3x² + 4x - 5",
+        "x² + 2x - 5",
+        "3x² + 2x - 5",
+        "3x² + 4x + 3"
+      ],
+      "correct_index": 0
+    },
+    {
+      "question_text": "Evaluate the integral: ∫(2x + 1)dx",
+      "points": 3,
+      "options": [
+        "x² + x + C",
+        "2x² + x + C",
+        "x² + 2x + C",
+        "2x + C"
+      ],
+      "correct_index": 0
+    },
+    {
+      "question_text": "Find dy/dx for y = sin(2x)",
+      "points": 3,
+      "options": [
+        "cos(2x)",
+        "2cos(2x)",
+        "sin(2x)",
+        "-2cos(2x)"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "What is the second derivative of f(x) = x⁴?",
+      "points": 3,
+      "options": [
+        "4x³",
+        "12x²",
+        "24x",
+        "4x"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Evaluate: ∫₀¹ x² dx",
+      "points": 3,
+      "options": [
+        "1/2",
+        "1/3",
+        "1/4",
+        "1"
+      ],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Find the stationary point of y = x² - 4x + 3",
+      "points": 3,
+      "options": [
+        "x = 1",
+        "x = 2",
+        "x = 3",
+        "x = 4"
+      ],
+      "correct_index": 1
+    }
+  ]
+}

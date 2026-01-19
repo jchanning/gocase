@@ -1,0 +1,123 @@
+{{define "content"}}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Teacher Dashboard</h1>
+    
+    <div class="mb-6">
+        <a href="/teacher/upload" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+            Upload New Test
+        </a>
+    </div>
+    
+    <!-- Tests Overview -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">My Tests</h2>
+        
+        {{if .Tests}}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Test Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Difficulty</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Score</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .Tests}}
+                    {{$stats := index $.TestStats .ID}}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{.Title}}</div>
+                            <div class="text-sm text-gray-500">{{.Description}}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {{if .Subject}}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {{.Subject.Name}}
+                            </span>
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {{if eq .Difficulty "easy"}}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Easy</span>
+                            {{else if eq .Difficulty "medium"}}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Medium</span>
+                            {{else if eq .Difficulty "hard"}}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">Hard</span>
+                            {{else}}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Expert</span>
+                            {{end}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{index $stats "completed_attempts"}} / {{index $stats "total_attempts"}}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{index $stats "average_score"}}%
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{.CreatedAt.Format "Jan 2, 2006"}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="text-center py-8 text-gray-500">
+            <p class="mb-4">You haven't uploaded any tests yet.</p>
+            <a href="/teacher/upload" class="text-blue-600 hover:text-blue-800 font-medium">Upload your first test →</a>
+        </div>
+        {{end}}
+    </div>
+    
+    <!-- Statistics Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total Tests</p>
+                    <p class="text-3xl font-bold text-gray-800">{{len .Tests}}</p>
+                </div>
+                <div class="text-4xl">📚</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Total Attempts</p>
+                    <p class="text-3xl font-bold text-gray-800">
+                        {{$totalAttempts := 0}}
+                        {{range .Tests}}
+                        {{$stats := index $.TestStats .ID}}
+                        {{$totalAttempts = add $totalAttempts (index $stats "total_attempts")}}
+                        {{end}}
+                        {{$totalAttempts}}
+                    </p>
+                </div>
+                <div class="text-4xl">✍️</div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Completed Attempts</p>
+                    <p class="text-3xl font-bold text-gray-800">
+                        {{$completedAttempts := 0}}
+                        {{range .Tests}}
+                        {{$stats := index $.TestStats .ID}}
+                        {{$completedAttempts = add $completedAttempts (index $stats "completed_attempts")}}
+                        {{end}}
+                        {{$completedAttempts}}
+                    </p>
+                </div>
+                <div class="text-4xl">✅</div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

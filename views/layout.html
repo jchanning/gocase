@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoCaSE - Test Preparation Platform</title>
+    
+    <!-- TailwindCSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-600 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">GoCaSE</h1>
+                <p class="text-sm text-blue-100">Test Preparation Platform</p>
+            </div>
+            {{if .Session}}
+            <div class="flex items-center space-x-4">
+                <span class="text-sm">Welcome, <strong>{{.Session.Username}}</strong> ({{.Session.Role}})</span>
+                {{if eq .Session.Role "student"}}
+                <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
+                <a href="/tests" class="hover:text-blue-200">Tests</a>
+                {{else if eq .Session.Role "teacher"}}
+                <a href="/teacher/dashboard" class="hover:text-blue-200">Dashboard</a>
+                <a href="/teacher/upload" class="hover:text-blue-200">Upload Test</a>
+                <a href="/tests" class="hover:text-blue-200">Browse Tests</a>
+                {{else if eq .Session.Role "admin"}}
+                <a href="/admin" class="hover:text-blue-200">Admin</a>
+                <a href="/admin/manage" class="hover:text-blue-200">Manage</a>
+                <a href="/register" class="hover:text-blue-200">Add User</a>
+                <a href="/tests" class="hover:text-blue-200">Tests</a>
+                {{end}}
+                <a href="/logout" class="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">Logout</a>
+            </div>
+            {{end}}
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4">
+        {{template "content" .}}
+    </main>
+    
+    <footer class="bg-gray-800 text-white p-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p class="text-sm">&copy; 2026 GoCaSE - Built with Go, Chi, HTMX & TailwindCSS</p>
+        </div>
+    </footer>
+</body>
+</html>

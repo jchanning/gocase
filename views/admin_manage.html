@@ -1,0 +1,90 @@
+{{define "content"}}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">System Management</h1>
+    
+    <!-- Subjects Management -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Subjects Management</h2>
+        
+        <!-- Add New Subject Form -->
+        <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-3">Add New Subject</h3>
+            <form hx-post="/admin/manage/subjects" hx-target="#subjects-list" hx-swap="beforeend" class="flex gap-4">
+                <input type="text" name="name" placeholder="Subject Name" required
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="description" placeholder="Description"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                    Add Subject
+                </button>
+            </form>
+        </div>
+        
+        <!-- Subjects List -->
+        <div id="subjects-list" class="space-y-2">
+            {{range .Subjects}}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded border">
+                <div>
+                    <span class="font-semibold">{{.Name}}</span>
+                    <span class="text-gray-600 text-sm ml-2">{{.Description}}</span>
+                </div>
+                <button hx-delete="/admin/manage/subjects/{{.ID}}" hx-confirm="Are you sure?" hx-target="closest div" hx-swap="outerHTML"
+                        class="text-red-600 hover:text-red-800 px-3 py-1">Delete</button>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    
+    <!-- Difficulty Levels Management -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Difficulty Levels</h2>
+        <div class="grid grid-cols-4 gap-4">
+            <div class="p-4 bg-green-50 border border-green-200 rounded text-center">
+                <div class="text-2xl mb-2">🟢</div>
+                <div class="font-semibold">Easy</div>
+            </div>
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded text-center">
+                <div class="text-2xl mb-2">🔵</div>
+                <div class="font-semibold">Medium</div>
+            </div>
+            <div class="p-4 bg-orange-50 border border-orange-200 rounded text-center">
+                <div class="text-2xl mb-2">🟠</div>
+                <div class="font-semibold">Hard</div>
+            </div>
+            <div class="p-4 bg-red-50 border border-red-200 rounded text-center">
+                <div class="text-2xl mb-2">🔴</div>
+                <div class="font-semibold">Expert</div>
+            </div>
+        </div>
+        <p class="text-sm text-gray-600 mt-4">Difficulty levels are predefined and cannot be modified.</p>
+    </div>
+    
+    <!-- Exam Standards Management -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Exam Standards</h2>
+        <div class="grid grid-cols-4 gap-4">
+            <div class="p-4 bg-purple-50 border border-purple-200 rounded text-center">
+                <div class="font-semibold">GCSE</div>
+                <div class="text-sm text-gray-600">General Certificate</div>
+            </div>
+            <div class="p-4 bg-indigo-50 border border-indigo-200 rounded text-center">
+                <div class="font-semibold">A-Level</div>
+                <div class="text-sm text-gray-600">Advanced Level</div>
+            </div>
+            <div class="p-4 bg-pink-50 border border-pink-200 rounded text-center">
+                <div class="font-semibold">IB</div>
+                <div class="text-sm text-gray-600">International Baccalaureate</div>
+            </div>
+            <div class="p-4 bg-teal-50 border border-teal-200 rounded text-center">
+                <div class="font-semibold">Other</div>
+                <div class="text-sm text-gray-600">Other Standards</div>
+            </div>
+        </div>
+        <p class="text-sm text-gray-600 mt-4">Exam standards are predefined and cannot be modified.</p>
+    </div>
+    
+    <div class="mt-8">
+        <a href="/admin" class="text-blue-600 hover:text-blue-800">← Back to Admin Dashboard</a>
+    </div>
+</div>
+{{end}}

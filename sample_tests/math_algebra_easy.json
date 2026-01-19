@@ -1,0 +1,42 @@
+{
+  "title": "GCSE Mathematics - Basic Algebra",
+  "description": "Test your understanding of basic algebraic concepts including solving equations and working with expressions",
+  "subject": "Mathematics",
+  "topic": "Algebra",
+  "exam_standard": "GCSE",
+  "difficulty": "Easy",
+  "time_limit_minutes": 10,
+  "passing_score": 60,
+  "questions": [
+    {
+      "question_text": "Solve for x: 2x + 5 = 13",
+      "points": 1,
+      "options": ["x = 2", "x = 4", "x = 6", "x = 8"],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Simplify: 3x + 2x - x",
+      "points": 1,
+      "options": ["2x", "4x", "5x", "6x"],
+      "correct_index": 1
+    },
+    {
+      "question_text": "What is the value of x if 5x = 25?",
+      "points": 1,
+      "options": ["3", "4", "5", "6"],
+      "correct_index": 2
+    },
+    {
+      "question_text": "Expand: 2(x + 3)",
+      "points": 1,
+      "options": ["2x + 3", "2x + 6", "x + 6", "2x + 5"],
+      "correct_index": 1
+    },
+    {
+      "question_text": "Solve for y: y/2 = 6",
+      "points": 1,
+      "options": ["3", "8", "10", "12"],
+      "correct_index": 3
+    }
+  ]
+}

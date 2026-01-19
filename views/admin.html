@@ -1,0 +1,125 @@
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard</h2>
+    <p class="text-gray-600">Manage tests and view statistics</p>
+</div>
+
+<!-- Upload Test Section -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h3 class="text-xl font-bold text-gray-800 mb-4">Upload New Test</h3>
+    
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+        <div class="mb-4">
+            <label for="testFile" class="cursor-pointer">
+                <div class="text-4xl mb-2">📄</div>
+                <p class="text-gray-700 font-medium mb-2">Upload Test JSON File</p>
+                <p class="text-sm text-gray-500 mb-4">Click to select a file or drag and drop</p>
+                <input type="file" id="testFile" accept=".json" class="hidden">
+                <span class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">
+                    Choose File
+                </span>
+            </label>
+        </div>
+        <div id="uploadStatus" class="mt-4"></div>
+    </div>
+    
+    <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <p class="text-sm text-blue-800 font-medium mb-2">📋 JSON Format Example:</p>
+        <pre class="text-xs bg-white p-3 rounded border overflow-x-auto"><code>{
+  "title": "Basic Algebra Test",
+  "description": "Test your algebra skills",
+  "subject": "Mathematics",
+  "topic": "Algebra",
+  "exam_standard": "GCSE",
+  "difficulty": "Medium",
+  "time_limit_minutes": 15,
+  "passing_score": 70,
+  "questions": [
+    {
+      "question_text": "What is 2 + 2?",
+      "points": 1,
+      "options": ["2", "3", "4", "5"],
+      "correct_index": 2
+    }
+  ]
+}</code></pre>
+    </div>
+</div>
+
+<!-- Existing Tests -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-xl font-bold text-gray-800 mb-4">Existing Tests</h3>
+    
+    {{if .Tests}}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b">
+                    <th class="text-left py-2 px-4">Title</th>
+                    <th class="text-left py-2 px-4">Subject</th>
+                    <th class="text-left py-2 px-4">Difficulty</th>
+                    <th class="text-left py-2 px-4">Standard</th>
+                    <th class="text-left py-2 px-4">Questions</th>
+                    <th class="text-left py-2 px-4">Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Tests}}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-4 font-medium">{{.Title}}</td>
+                    <td class="py-3 px-4">{{if .Subject}}{{.Subject.Name}}{{else}}-{{end}}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs font-semibold rounded
+                            {{if eq .Difficulty "Easy"}}bg-green-100 text-green-800
+                            {{else if eq .Difficulty "Medium"}}bg-yellow-100 text-yellow-800
+                            {{else}}bg-red-100 text-red-800{{end}}">
+                            {{.Difficulty}}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">{{.ExamStandard}}</td>
+                    <td class="py-3 px-4 text-center">{{len .Questions}}</td>
+                    <td class="py-3 px-4 text-sm text-gray-600">{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{else}}
+    <p class="text-gray-500 text-center py-8">No tests created yet. Upload your first test above!</p>
+    {{end}}
+</div>
+
+<script>
+const fileInput = document.getElementById('testFile');
+const uploadStatus = document.getElementById('uploadStatus');
+
+fileInput.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    uploadStatus.innerHTML = '<p class="text-blue-600">Uploading...</p>';
+    
+    try {
+        const text = await file.text();
+        const testData = JSON.parse(text);
+        
+        const response = await fetch('/admin/upload', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(testData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            uploadStatus.innerHTML = `<p class="text-green-600 font-semibold">✅ ${result.message}</p>`;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            uploadStatus.innerHTML = `<p class="text-red-600">❌ Upload failed</p>`;
+        }
+    } catch (error) {
+        uploadStatus.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
+    }
+});
+</script>
+{{end}}

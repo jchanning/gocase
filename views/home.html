@@ -1,0 +1,55 @@
+{{define "content"}}
+<div class="bg-white rounded-lg shadow-md p-8 mt-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-4">Welcome to GoCaSE Test Platform!</h2>
+    
+    <div class="space-y-4">
+        <p class="text-gray-700 leading-relaxed">
+            A comprehensive test preparation platform for students preparing for GCSE and A-Level exams.
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+            <div class="border-2 border-blue-200 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-blue-800 mb-3">📚 For Students</h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li>✓ Practice with multiple choice questions</li>
+                    <li>✓ Track your progress and scores</li>
+                    <li>✓ Earn achievements and badges</li>
+                    <li>✓ Get instant feedback</li>
+                </ul>
+                <a href="/register" class="mt-4 block bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-2 px-4 rounded">
+                    Register as Student
+                </a>
+            </div>
+            
+            <div class="border-2 border-green-200 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-green-800 mb-3">👨‍🏫 For Teachers</h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li>✓ Upload custom tests</li>
+                    <li>✓ Manage multiple subjects</li>
+                    <li>✓ Set difficulty levels</li>
+                    <li>✓ Monitor student progress</li>
+                </ul>
+                <a href="/login" class="mt-4 block bg-green-600 hover:bg-green-700 text-white text-center font-bold py-2 px-4 rounded">
+                    Teacher Login
+                </a>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+            <p class="text-blue-800">
+                <strong>Features:</strong> Multiple subjects • Timed tests • Progress tracking • 
+                Gamification • GCSE/A-Level standards • Easy, Medium, Hard difficulties
+            </p>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <a href="/login" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg inline-block mr-4">
+                Login
+            </a>
+            <a href="/register" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg inline-block">
+                Register
+            </a>
+        </div>
+    </div>
+</div>
+{{end}}
