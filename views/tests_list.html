@@ -7,30 +7,52 @@
 <!-- Filter Section -->
 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
     <h3 class="font-semibold text-gray-700 mb-3">Filter Tests</h3>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <select class="px-3 py-2 border border-gray-300 rounded-md">
-            <option>All Subjects</option>
-            <option>Mathematics</option>
-            <option>Science</option>
-            <option>History</option>
-            <option>English</option>
-        </select>
-        <select class="px-3 py-2 border border-gray-300 rounded-md">
-            <option>All Difficulties</option>
-            <option>Easy</option>
-            <option>Medium</option>
-            <option>Hard</option>
-        </select>
-        <select class="px-3 py-2 border border-gray-300 rounded-md">
-            <option>All Standards</option>
-            <option>Primary</option>
-            <option>GCSE</option>
-            <option>A-Level</option>
-        </select>
-        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Apply Filters
-        </button>
-    </div>
+    <form method="GET" action="/tests">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Subject</label>
+                <select name="subject_id" class="px-3 py-2 w-full border border-gray-300 rounded-md">
+                    <option value="">All Subjects</option>
+                    {{range .Subjects}}
+                    <option value="{{.ID}}" {{if and $.Filters.SubjectID (eq (intValue $.Filters.SubjectID) .ID)}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Difficulty</label>
+                <select name="difficulty" class="px-3 py-2 w-full border border-gray-300 rounded-md">
+                    <option value="">All Difficulties</option>
+                    <option value="Easy" {{if eq $.Filters.Difficulty "Easy"}}selected{{end}}>Easy</option>
+                    <option value="Medium" {{if eq $.Filters.Difficulty "Medium"}}selected{{end}}>Medium</option>
+                    <option value="Hard" {{if eq $.Filters.Difficulty "Hard"}}selected{{end}}>Hard</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Standard</label>
+                <select name="standard" class="px-3 py-2 w-full border border-gray-300 rounded-md">
+                    <option value="">All Standards</option>
+                    <option value="Primary" {{if eq $.Filters.Standard "Primary"}}selected{{end}}>Primary</option>
+                    <option value="Secondary" {{if eq $.Filters.Standard "Secondary"}}selected{{end}}>Secondary</option>
+                    <option value="GCSE" {{if eq $.Filters.Standard "GCSE"}}selected{{end}}>GCSE</option>
+                    <option value="A-Level" {{if eq $.Filters.Standard "A-Level"}}selected{{end}}>A-Level</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-600 mb-1">Published</label>
+                <select name="published" class="px-3 py-2 w-full border border-gray-300 rounded-md">
+                    <option value="" {{if not $.Filters.Published}}selected{{end}}>All</option>
+                    <option value="true" {{if and $.Filters.Published (boolValue $.Filters.Published)}}selected{{end}}>Published</option>
+                    <option value="false" {{if and $.Filters.Published (not (boolValue $.Filters.Published))}}selected{{end}}>Unpublished</option>
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+                    Apply Filters
+                </button>
+                <a href="/tests" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded">Reset</a>
+            </div>
+        </div>
+    </form>
 </div>
 
 <!-- Tests Grid -->
@@ -65,7 +87,19 @@
             <div class="flex items-center text-gray-700">
                 <span class="font-medium mr-2">✅ Passing Score:</span> {{.PassingScore}}%
             </div>
+            {{if .NotesFilename}}
+            <div class="flex items-center text-green-600">
+                <span class="font-medium mr-2">📄 Notes:</span> Available
+            </div>
+            {{end}}
         </div>
+        
+        {{if .NotesFilename}}
+        <a href="/tests/{{.ID}}/notes" target="_blank"
+           class="block w-full bg-green-600 hover:bg-green-700 text-white text-center font-semibold py-2 px-4 rounded transition duration-200 mb-2">
+            📄 View Notes
+        </a>
+        {{end}}
         
         <a href="/test/start?id={{.ID}}" 
            class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-2 px-4 rounded transition duration-200">

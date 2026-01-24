@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS tests (
     difficulty VARCHAR(20) NOT NULL CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
     time_limit_minutes INTEGER NOT NULL DEFAULT 10,
     passing_score INTEGER NOT NULL DEFAULT 60,
+    published BOOLEAN DEFAULT FALSE,
+    notes_filename VARCHAR(500),
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

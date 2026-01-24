@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"my-app/internal/models"
@@ -12,6 +14,17 @@ import (
 // AttemptRepository handles test attempt database operations
 type AttemptRepository struct {
 	pool *pgxpool.Pool
+}
+
+// AttemptSearchFilter describes optional filters for querying attempts.
+type AttemptSearchFilter struct {
+	UserID      *int
+	StudentName string
+	TestName    string
+	DateFrom    *time.Time
+	DateTo      *time.Time
+	ScoreMin    *int
+	ScoreMax    *int
 }
 
 // NewAttemptRepository creates a new attempt repository
@@ -241,6 +254,87 @@ func (r *AttemptRepository) GetByTestID(ctx context.Context, testID int) ([]mode
 		if err != nil {
 			return nil, err
 		}
+		attempts = append(attempts, attempt)
+	}
+
+	return attempts, rows.Err()
+}
+
+// SearchAttempts returns attempts filtered by the provided criteria and includes user/test metadata.
+func (r *AttemptRepository) SearchAttempts(ctx context.Context, filter AttemptSearchFilter) ([]models.TestAttempt, error) {
+	var (
+		builder strings.Builder
+		args    []interface{}
+	)
+
+	builder.WriteString(`SELECT ta.id, ta.user_id, ta.test_id, ta.started_at, ta.completed_at, ta.score,
+	       ta.total_points, ta.time_taken_seconds, ta.status, ta.created_at,
+	       u.id, u.username, u.email, u.role,
+	       t.id, t.title, t.exam_standard, t.difficulty
+	FROM test_attempts ta
+	JOIN users u ON ta.user_id = u.id
+	JOIN tests t ON ta.test_id = t.id
+	WHERE 1=1`)
+
+	if filter.UserID != nil {
+		args = append(args, *filter.UserID)
+		builder.WriteString(fmt.Sprintf(" AND ta.user_id = $%d", len(args)))
+	}
+
+	if filter.StudentName != "" {
+		args = append(args, "%"+filter.StudentName+"%")
+		builder.WriteString(fmt.Sprintf(" AND u.username ILIKE $%d", len(args)))
+	}
+
+	if filter.TestName != "" {
+		args = append(args, "%"+filter.TestName+"%")
+		builder.WriteString(fmt.Sprintf(" AND t.title ILIKE $%d", len(args)))
+	}
+
+	if filter.DateFrom != nil {
+		args = append(args, *filter.DateFrom)
+		builder.WriteString(fmt.Sprintf(" AND COALESCE(ta.completed_at, ta.started_at) >= $%d", len(args)))
+	}
+
+	if filter.DateTo != nil {
+		args = append(args, *filter.DateTo)
+		builder.WriteString(fmt.Sprintf(" AND COALESCE(ta.completed_at, ta.started_at) <= $%d", len(args)))
+	}
+
+	if filter.ScoreMin != nil {
+		args = append(args, *filter.ScoreMin)
+		builder.WriteString(fmt.Sprintf(" AND ta.score >= $%d", len(args)))
+	}
+
+	if filter.ScoreMax != nil {
+		args = append(args, *filter.ScoreMax)
+		builder.WriteString(fmt.Sprintf(" AND ta.score <= $%d", len(args)))
+	}
+
+	builder.WriteString(" ORDER BY COALESCE(ta.completed_at, ta.started_at) DESC")
+
+	rows, err := r.pool.Query(ctx, builder.String(), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var attempts []models.TestAttempt
+	for rows.Next() {
+		var attempt models.TestAttempt
+		attempt.User = &models.User{}
+		attempt.Test = &models.Test{}
+
+		err := rows.Scan(
+			&attempt.ID, &attempt.UserID, &attempt.TestID, &attempt.StartedAt, &attempt.CompletedAt,
+			&attempt.Score, &attempt.TotalPoints, &attempt.TimeTakenSeconds, &attempt.Status, &attempt.CreatedAt,
+			&attempt.User.ID, &attempt.User.Username, &attempt.User.Email, &attempt.User.Role,
+			&attempt.Test.ID, &attempt.Test.Title, &attempt.Test.ExamStandard, &attempt.Test.Difficulty,
+		)
+		if err != nil {
+			return nil, err
+		}
+
 		attempts = append(attempts, attempt)
 	}
 

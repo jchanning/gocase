@@ -169,3 +169,77 @@ func (r *UserRepository) HasAchievement(ctx context.Context, userID, achievement
 	err := r.pool.QueryRow(ctx, query, userID, achievementID).Scan(&exists)
 	return exists, err
 }
+
+// GetAllUsers retrieves all users
+func (r *UserRepository) GetAllUsers(ctx context.Context) ([]models.User, error) {
+	query := `
+		SELECT id, email, username, role, created_at, updated_at
+		FROM users
+		ORDER BY created_at DESC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		err := rows.Scan(&u.ID, &u.Email, &u.Username, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
+}
+
+// GetUsersByRole retrieves users by role
+func (r *UserRepository) GetUsersByRole(ctx context.Context, role string) ([]models.User, error) {
+	query := `
+		SELECT id, email, username, role, created_at, updated_at
+		FROM users
+		WHERE role = $1
+		ORDER BY created_at DESC`
+
+	rows, err := r.pool.Query(ctx, query, role)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		err := rows.Scan(&u.ID, &u.Email, &u.Username, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
+}
+
+// UpdateUserRole updates a user's role
+func (r *UserRepository) UpdateUserRole(ctx context.Context, userID int, role string) error {
+	query := `UPDATE users SET role = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, role, userID)
+	return err
+}
+
+// UpdatePasswordHash updates a user's password hash
+func (r *UserRepository) UpdatePasswordHash(ctx context.Context, userID int, newHash string) error {
+	query := `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, newHash, userID)
+	return err
+}
+
+// DeleteUser deletes a user by ID
+func (r *UserRepository) DeleteUser(ctx context.Context, userID int) error {
+	query := `DELETE FROM users WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, userID)
+	return err
+}

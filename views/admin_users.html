@@ -1,0 +1,180 @@
+{{define "content"}}
+<div class="container mx-auto py-8 px-4">
+    <h1 class="text-3xl font-bold mb-6">User Management</h1>
+    
+    <!-- Create User Section -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Create New User</h2>
+        
+        <form id="create-user-form" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email*</label>
+                <input type="email" id="email" name="email" required
+                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+            </div>
+            
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Username*</label>
+                <input type="text" id="username" name="username" required
+                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+            </div>
+            
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password*</label>
+                <input type="password" id="password" name="password" required
+                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+            </div>
+            
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Role*</label>
+                <select id="role" name="role" required
+                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Create User
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Users Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {{range .Users}}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{.Email}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{.Username}}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <form method="POST" action="/admin/users/{{.ID}}/role" class="inline-flex gap-2">
+                            <select name="role" onchange="updateRole(this, {{.ID}})" 
+                                class="rounded-md border border-gray-300 text-sm px-2 py-1">
+                                <option value="student" {{if eq .Role "student"}}selected{{end}}>Student</option>
+                                <option value="teacher" {{if eq .Role "teacher"}}selected{{end}}>Teacher</option>
+                                <option value="admin" {{if eq .Role "admin"}}selected{{end}}>Admin</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{.CreatedAt.Format "2006-01-02"}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <button onclick="resetPassword({{.ID}})" 
+                            class="text-blue-600 hover:text-blue-800 font-medium">
+                            Reset Password
+                        </button>
+                        <button onclick="deleteUser({{.ID}}, '{{.Email}}')" 
+                            class="text-red-600 hover:text-red-800 font-medium">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.getElementById('create-user-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/admin/users/create', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('User created successfully!');
+            this.reset();
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to create user'));
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+function updateRole(select, userId) {
+    const newRole = select.value;
+    const formData = new FormData();
+    formData.append('role', newRole);
+    
+    fetch(`/admin/users/${userId}/role`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Role updated successfully!');
+        } else {
+            alert('Error updating role');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        location.reload();
+    });
+}
+
+function resetPassword(userId) {
+    const newPassword = prompt('Enter new password:');
+    if (newPassword) {
+        const formData = new FormData();
+        formData.append('password', newPassword);
+        
+        fetch(`/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Password reset successfully!');
+            } else {
+                alert('Error resetting password');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function deleteUser(userId, email) {
+    if (confirm(`Are you sure you want to delete user "${email}"? This action cannot be undone.`)) {
+        fetch(`/admin/users/${userId}/delete`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('User deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error deleting user');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+</script>
+{{end}}

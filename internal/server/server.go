@@ -65,6 +65,7 @@ func NewServer(db *database.Service) *Server {
 		// Dashboard
 		r.Get("/dashboard", dashboardHandler.ShowDashboard)
 		r.Get("/logout", authHandler.Logout)
+		r.Get("/history", testHandler.History)
 
 		// Tests - student routes
 		r.Get("/tests", testHandler.ListTests)
@@ -78,12 +79,23 @@ func NewServer(db *database.Service) *Server {
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireRole("admin", "teacher"))
 			r.Get("/admin", adminHandler.ShowAdmin)
+			r.Get("/admin/wizard", adminHandler.ShowWizard)
+			r.Post("/admin/wizard", adminHandler.CreateWizardTest)
 			r.Post("/admin/upload", adminHandler.UploadTest)
 
 			// Teacher-specific routes
 			r.Get("/teacher/dashboard", teacherHandler.ShowDashboard)
 			r.Get("/teacher/upload", teacherHandler.ShowUpload)
 			r.Post("/teacher/upload", teacherHandler.UploadTest)
+			r.Get("/teacher/test/create", teacherHandler.ShowCreateTest)
+			r.Post("/teacher/test/create", teacherHandler.CreateTest)
+			r.Get("/teacher/test/{id}/edit", teacherHandler.EditTest)
+			r.Post("/teacher/test/{id}/update", teacherHandler.UpdateTest)
+			r.Get("/teacher/test/{id}/preview", teacherHandler.PreviewTest)
+			r.Post("/teacher/test/{id}/publish", teacherHandler.PublishTest)
+			r.Post("/teacher/test/{id}/unpublish", teacherHandler.UnpublishTest)
+			r.Post("/teacher/test/{id}/delete", teacherHandler.DeleteTest)
+			r.Delete("/teacher/test/{id}", teacherHandler.DeleteTest)
 
 			// Admin-only routes
 			r.Group(func(r chi.Router) {
@@ -91,8 +103,23 @@ func NewServer(db *database.Service) *Server {
 				r.Get("/admin/manage", adminHandler.ShowManagement)
 				r.Post("/admin/manage/subjects", adminHandler.CreateSubject)
 				r.Delete("/admin/manage/subjects/{id}", adminHandler.DeleteSubject)
+				r.Post("/admin/test/{id}/delete", adminHandler.DeleteTest)
+				r.Delete("/admin/test/{id}", adminHandler.DeleteTest)
+				r.Post("/admin/test/{id}/update", adminHandler.UpdateTest)
+				r.Post("/admin/test/{id}/remove-notes", adminHandler.RemoveTestNotes)
+
+				// User management routes
+				r.Get("/admin/users", adminHandler.ShowUserManagement)
+				r.Post("/admin/users/create", adminHandler.CreateUser)
+				r.Post("/admin/users/{id}/role", adminHandler.UpdateUserRole)
+				r.Post("/admin/users/{id}/reset-password", adminHandler.ResetUserPassword)
+				r.Post("/admin/users/{id}/delete", adminHandler.DeleteUser)
+				r.Delete("/admin/users/{id}", adminHandler.DeleteUser)
 			})
 		})
+
+		// Notes viewing route (for students and teachers)
+		r.Get("/tests/{id}/notes", adminHandler.ServeTestNotes)
 	})
 
 	return s

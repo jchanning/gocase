@@ -1,0 +1,246 @@
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">Test Creation Wizard</h2>
+    <p class="text-gray-600">Guide through adding test details and questions.</p>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6" id="wizard-root">
+    <div class="flex items-center gap-2 mb-4 text-sm text-gray-600">
+        <span class="font-semibold" id="step-label">Step 1 of 2</span>
+        <div class="flex-1 h-2 bg-gray-100 rounded">
+            <div id="step-progress" class="h-2 bg-blue-600 rounded" style="width: 50%"></div>
+        </div>
+    </div>
+
+    <form id="wizard-form" class="space-y-6">
+        <section data-step="1" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Title*</label>
+                    <input name="title" class="w-full border rounded px-3 py-2" placeholder="e.g., Algebra Fundamentals" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Subject*</label>
+                    <select name="subject" class="w-full border rounded px-3 py-2" required>
+                        <option value="">Select subject</option>
+                        {{range .Subjects}}
+                        <option value="{{.Name}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm text-gray-700 mb-1">Description*</label>
+                <textarea name="description" rows="3" class="w-full border rounded px-3 py-2" required></textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Difficulty*</label>
+                    <select name="difficulty" class="w-full border rounded px-3 py-2" required>
+                        <option value="">Select difficulty</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Standard*</label>
+                    <select name="exam_standard" class="w-full border rounded px-3 py-2" required>
+                        <option value="">Select standard</option>
+                        <option value="Primary">Primary</option>
+                        <option value="Secondary">Secondary</option>
+                        <option value="GCSE">GCSE</option>
+                        <option value="A-Level">A-Level</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Time Limit (minutes)*</label>
+                    <input type="number" name="time_limit_minutes" class="w-full border rounded px-3 py-2" value="10" min="1" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Passing Score (%)*</label>
+                    <input type="number" name="passing_score" class="w-full border rounded px-3 py-2" value="60" min="0" max="100" required>
+                </div>
+            </div>
+        </section>
+
+        <section data-step="2" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Questions</h3>
+                <button type="button" id="add-question" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">+ Add Question</button>
+            </div>
+            <div id="questions" class="space-y-4"></div>
+        </section>
+
+        <div class="flex justify-between pt-2 border-t">
+            <button type="button" id="prev-step" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded" disabled>Previous</button>
+            <div class="flex gap-2">
+                <span id="wizard-error" class="text-red-600 text-sm"></span>
+                <button type="button" id="next-step" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Next</button>
+                <button type="submit" id="submit-wizard" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Create Test</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+(function() {
+    let currentStep = 1;
+    const steps = document.querySelectorAll('[data-step]');
+    const nextBtn = document.getElementById('next-step');
+    const prevBtn = document.getElementById('prev-step');
+    const submitBtn = document.getElementById('submit-wizard');
+    const stepLabel = document.getElementById('step-label');
+    const stepProgress = document.getElementById('step-progress');
+    const questionsEl = document.getElementById('questions');
+    const addQuestionBtn = document.getElementById('add-question');
+    const errorEl = document.getElementById('wizard-error');
+    const form = document.getElementById('wizard-form');
+
+    function updateStep(next) {
+        steps.forEach(section => {
+            section.classList.toggle('hidden', parseInt(section.dataset.step) !== next);
+        });
+        currentStep = next;
+        stepLabel.textContent = `Step ${currentStep} of 2`;
+        stepProgress.style.width = currentStep === 1 ? '50%' : '100%';
+        prevBtn.disabled = currentStep === 1;
+        nextBtn.classList.toggle('hidden', currentStep === 2);
+        submitBtn.classList.toggle('hidden', currentStep !== 2);
+    }
+
+    function addQuestion() {
+        const idx = questionsEl.children.length + 1;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'border rounded p-4';
+        wrapper.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <h4 class="font-semibold">Question ${idx}</h4>
+                <button type="button" class="text-red-600" onclick="this.closest('div.border').remove(); renumberQuestions();">Remove</button>
+            </div>
+            <div class="space-y-2">
+                <input name="question_${idx}_text" placeholder="Question text" class="w-full border rounded px-3 py-2">
+                <input type="number" name="question_${idx}_points" value="1" min="1" class="w-full border rounded px-3 py-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    ${[1,2,3,4].map(n => `
+                        <label class="flex items-center gap-2 border rounded px-2 py-1">
+                            <input type="radio" name="question_${idx}_correct" value="${n-1}">
+                            <input name="question_${idx}_option_${n}" class="flex-1 border rounded px-2 py-1" placeholder="Option ${n}">
+                            <span class="text-xs text-gray-600">Correct</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        questionsEl.appendChild(wrapper);
+    }
+
+    window.renumberQuestions = function() {
+        const cards = Array.from(questionsEl.children);
+        cards.forEach((card, idx) => {
+            const qIdx = idx + 1;
+            card.querySelector('h4').textContent = `Question ${qIdx}`;
+            card.querySelectorAll('input').forEach(input => {
+                const parts = input.name.split('_');
+                parts[1] = qIdx.toString();
+                input.name = parts.join('_');
+            });
+        });
+    };
+
+    addQuestionBtn.addEventListener('click', addQuestion);
+    addQuestion();
+
+    nextBtn.addEventListener('click', () => {
+        errorEl.textContent = '';
+        if (currentStep === 1 && !form.reportValidity()) {
+            errorEl.textContent = 'Please fill required fields.';
+            return;
+        }
+        updateStep(2);
+    });
+
+    prevBtn.addEventListener('click', () => {
+        errorEl.textContent = '';
+        updateStep(1);
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorEl.textContent = '';
+
+        const data = new FormData(form);
+        const payload = {
+            title: data.get('title') || '',
+            description: data.get('description') || '',
+            subject: data.get('subject') || '',
+            exam_standard: data.get('exam_standard') || '',
+            difficulty: data.get('difficulty') || '',
+            time_limit_minutes: Number(data.get('time_limit_minutes') || '0'),
+            passing_score: Number(data.get('passing_score') || '0'),
+            questions: []
+        };
+
+        const cards = Array.from(questionsEl.children);
+        if (!cards.length) {
+            errorEl.textContent = 'Add at least one question.';
+            return;
+        }
+
+        let firstError = '';
+
+        cards.forEach((card, idx) => {
+            const qIdx = idx + 1;
+            const text = (data.get(`question_${qIdx}_text`) || '').trim();
+            const pointsRaw = data.get(`question_${qIdx}_points`) || '0';
+            const points = Number(pointsRaw);
+            const correct = data.get(`question_${qIdx}_correct`);
+
+            const opts = [];
+            for (let i = 1; i <= 4; i++) {
+                opts.push((data.get(`question_${qIdx}_option_${i}`) || '').trim());
+            }
+
+            if (!text && !firstError) firstError = `Question ${qIdx}: text is required.`;
+            if ((isNaN(points) || points <= 0) && !firstError) firstError = `Question ${qIdx}: points must be > 0.`;
+            if (opts.some(o => !o) && !firstError) firstError = `Question ${qIdx}: all options are required.`;
+            if (correct === null && !firstError) firstError = `Question ${qIdx}: choose the correct option.`;
+
+            const question = {
+                question_text: text,
+                points: Number.isFinite(points) ? points : 0,
+                options: opts,
+                correct_index: correct === null ? -1 : Number(correct)
+            };
+            payload.questions.push(question);
+        });
+
+        if (firstError) {
+            errorEl.textContent = firstError;
+            return;
+        }
+
+        const resp = await fetch('/admin/wizard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+            const result = await resp.json();
+            alert('Test created: ' + result.message);
+            window.location.href = '/admin';
+        } else {
+            try {
+                const err = await resp.json();
+                errorEl.textContent = Object.values(err.errors || {general: 'Validation failed'}).join(', ');
+            } catch (_e) {
+                errorEl.textContent = 'Failed to create test.';
+            }
+        }
+    });
+})();
+</script>
+{{end}}

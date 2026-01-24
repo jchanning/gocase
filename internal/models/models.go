@@ -41,6 +41,8 @@ type Test struct {
 	Difficulty       string    `json:"difficulty"`    // Easy, Medium, Hard
 	TimeLimitMinutes int       `json:"time_limit_minutes"`
 	PassingScore     int       `json:"passing_score"`
+	Published        bool      `json:"published"`
+	NotesFilename    *string   `json:"notes_filename"`
 	CreatedBy        *int      `json:"created_by"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
@@ -91,6 +93,7 @@ type TestAttempt struct {
 	// Related data
 	Test    *Test           `json:"test,omitempty"`
 	Answers []StudentAnswer `json:"answers,omitempty"`
+	User    *User           `json:"user,omitempty"`
 }
 
 // StudentAnswer represents a student's answer to a question

@@ -1,0 +1,113 @@
+{{define "test_preview"}}
+<div class="container mx-auto py-8 px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">{{.Test.Title}}</h1>
+        <a href="/teacher/test/{{.Test.ID}}/edit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Back to Edit
+        </a>
+    </div>
+    
+    <!-- Test Details -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div>
+                <p class="text-gray-600 text-sm">Subject</p>
+                <p class="font-semibold">{{if .Test.Subject}}{{.Test.Subject.Name}}{{else}}N/A{{end}}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Difficulty</p>
+                <p class="font-semibold">{{.Test.Difficulty}}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Exam Standard</p>
+                <p class="font-semibold">{{.Test.ExamStandard}}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Status</p>
+                <p class="font-semibold">
+                    {{if .Test.Published}}
+                    <span class="text-green-600">Published</span>
+                    {{else}}
+                    <span class="text-yellow-600">Draft</span>
+                    {{end}}
+                </p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4">
+            <div>
+                <p class="text-gray-600 text-sm">Time Limit</p>
+                <p class="font-semibold">{{.Test.TimeLimitMinutes}} minutes</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Passing Score</p>
+                <p class="font-semibold">{{.Test.PassingScore}}%</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Total Questions</p>
+                <p class="font-semibold">{{len .Test.Questions}}</p>
+            </div>
+        </div>
+        
+        <hr class="my-4">
+        
+        <div>
+            <p class="text-gray-600 text-sm mb-2">Description</p>
+            <p class="text-gray-800">{{.Test.Description}}</p>
+        </div>
+    </div>
+    
+    <!-- Questions Preview -->
+    <div class="space-y-6">
+        {{range .Test.Questions}}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold mb-2">Question {{.QuestionOrder}}</h2>
+            
+            <div class="mb-4">
+                <p class="text-gray-800 text-lg mb-3">{{.QuestionText}}</p>
+                
+                {{if .ImageURL}}
+                <div class="mb-4">
+                    <img src="{{.ImageURL}}" alt="Question image" class="max-h-64 rounded">
+                </div>
+                {{end}}
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                <p class="text-sm font-semibold text-gray-600 mb-3">Answer Options:</p>
+                <div class="space-y-2">
+                    {{range .Options}}
+                    <div class="flex items-start gap-3 p-2 rounded {{if .IsCorrect}}bg-green-50 border-l-4 border-green-500{{else}}bg-gray-100{{end}}">
+                        <div class="flex-shrink-0">
+                            {{if .IsCorrect}}
+                            <span class="inline-block w-6 h-6 bg-green-500 rounded-full text-center text-white text-sm">✓</span>
+                            {{else}}
+                            <span class="inline-block w-6 h-6 bg-gray-300 rounded-full"></span>
+                            {{end}}
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-gray-800">{{.OptionText}}</p>
+                            {{if .IsCorrect}}
+                            <p class="text-xs text-green-600 font-semibold mt-1">Correct Answer</p>
+                            {{end}}
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            
+            <div class="mt-3 text-sm text-gray-600">
+                <span class="font-semibold">Points:</span> {{.Points}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+    
+    <!-- Actions -->
+    <div class="mt-8 flex gap-4 justify-center">
+        <a href="/teacher/test/{{.Test.ID}}/edit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+            Back to Edit
+        </a>
+    </div>
+</div>
+{{end}}

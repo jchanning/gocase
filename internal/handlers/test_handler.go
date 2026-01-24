@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"my-app/internal/auth"
@@ -20,6 +21,26 @@ type TestHandler struct {
 	userRepo    *repository.UserRepository
 }
 
+// testFilters captures query parameters for filtering available tests.
+type testFilters struct {
+	SubjectID  *int
+	Difficulty string
+	Standard   string
+	Published  *bool
+}
+
+// historyFilters captures query filters for attempt history.
+type historyFilters struct {
+	StudentName         string
+	TestName            string
+	DateFrom            *time.Time
+	DateTo              *time.Time
+	ScoreMin            *int
+	ScoreMax            *int
+	UserID              *int
+	AttemptSearchFilter repository.AttemptSearchFilter
+}
+
 // NewTestHandler creates a new test handler
 func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository, userRepo *repository.UserRepository) *TestHandler {
 	return &TestHandler{
@@ -32,6 +53,7 @@ func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository
 // ListTests displays all available tests
 func (h *TestHandler) ListTests(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSessionData(r)
+	filters := parseTestFilters(r)
 
 	tests, err := h.testRepo.GetAll(r.Context())
 	if err != nil {
@@ -40,12 +62,35 @@ func (h *TestHandler) ListTests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]interface{}{
-		"Session": session,
-		"Tests":   tests,
+	filteredTests := filterTests(tests, filters)
+
+	subjects, err := h.testRepo.GetSubjects(r.Context())
+	if err != nil {
+		log.Printf("Error fetching subjects: %v", err)
+		subjects = []models.Subject{}
 	}
 
-	tmpl, err := template.ParseFiles("views/layout.html", "views/tests_list.html")
+	data := map[string]interface{}{
+		"Session":  session,
+		"Tests":    filteredTests,
+		"Filters":  filters,
+		"Subjects": subjects,
+	}
+
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"intValue": func(v *int) int {
+			if v == nil {
+				return 0
+			}
+			return *v
+		},
+		"boolValue": func(v *bool) bool {
+			if v == nil {
+				return false
+			}
+			return *v
+		},
+	}).ParseFiles("views/layout.html", "views/tests_list.html")
 	if err != nil {
 		log.Printf("Error parsing templates: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -56,6 +101,155 @@ func (h *TestHandler) ListTests(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error executing template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// History shows attempts for the current user (students) or all attempts (teacher/admin).
+func (h *TestHandler) History(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+
+	filters := parseHistoryFilters(r)
+	if session.Role == "student" {
+		filters.UserID = &session.UserID
+	}
+	filters.AttemptSearchFilter.UserID = filters.UserID
+
+	attempts, err := h.attemptRepo.SearchAttempts(r.Context(), filters.AttemptSearchFilter)
+	if err != nil {
+		log.Printf("Error fetching attempt history: %v", err)
+		attempts = []models.TestAttempt{}
+	}
+
+	data := map[string]interface{}{
+		"Session":  session,
+		"Attempts": attempts,
+		"Filters":  filters,
+	}
+
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"intValue": func(v *int) int {
+			if v == nil {
+				return 0
+			}
+			return *v
+		},
+	}).ParseFiles("views/layout.html", "views/history.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// parseTestFilters extracts filter values from the request query string.
+func parseTestFilters(r *http.Request) testFilters {
+	query := r.URL.Query()
+	filters := testFilters{}
+
+	if subjectVal := query.Get("subject_id"); subjectVal != "" {
+		if id, err := strconv.Atoi(subjectVal); err == nil {
+			filters.SubjectID = &id
+		}
+	}
+
+	if diff := query.Get("difficulty"); diff != "" && diff != "All" {
+		filters.Difficulty = diff
+	}
+
+	if std := query.Get("standard"); std != "" && std != "All" {
+		filters.Standard = std
+	}
+
+	if pub := query.Get("published"); pub != "" {
+		val := strings.ToLower(pub)
+		switch val {
+		case "true", "1", "published":
+			v := true
+			filters.Published = &v
+		case "false", "0", "unpublished":
+			v := false
+			filters.Published = &v
+		}
+	}
+
+	return filters
+}
+
+// parseHistoryFilters converts query params into a repository filter and carries display values.
+func parseHistoryFilters(r *http.Request) historyFilters {
+	query := r.URL.Query()
+	filters := historyFilters{
+		StudentName: query.Get("student"),
+		TestName:    query.Get("test"),
+	}
+
+	if val := query.Get("date_from"); val != "" {
+		if t, err := time.Parse("2006-01-02", val); err == nil {
+			filters.DateFrom = &t
+		}
+	}
+
+	if val := query.Get("date_to"); val != "" {
+		if t, err := time.Parse("2006-01-02", val); err == nil {
+			filters.DateTo = &t
+		}
+	}
+
+	if val := query.Get("score_min"); val != "" {
+		if num, err := strconv.Atoi(val); err == nil {
+			filters.ScoreMin = &num
+		}
+	}
+
+	if val := query.Get("score_max"); val != "" {
+		if num, err := strconv.Atoi(val); err == nil {
+			filters.ScoreMax = &num
+		}
+	}
+
+	filters.AttemptSearchFilter = repository.AttemptSearchFilter{
+		UserID:      filters.UserID,
+		StudentName: filters.StudentName,
+		TestName:    filters.TestName,
+		DateFrom:    filters.DateFrom,
+		DateTo:      filters.DateTo,
+		ScoreMin:    filters.ScoreMin,
+		ScoreMax:    filters.ScoreMax,
+	}
+
+	return filters
+}
+
+// filterTests applies the parsed filters to the in-memory list of tests.
+func filterTests(tests []models.Test, filters testFilters) []models.Test {
+	var filtered []models.Test
+	for _, t := range tests {
+		if filters.SubjectID != nil {
+			if t.SubjectID == nil || *t.SubjectID != *filters.SubjectID {
+				continue
+			}
+		}
+
+		if filters.Difficulty != "" && !strings.EqualFold(t.Difficulty, filters.Difficulty) {
+			continue
+		}
+
+		if filters.Standard != "" && !strings.EqualFold(t.ExamStandard, filters.Standard) {
+			continue
+		}
+
+		if filters.Published != nil && t.Published != *filters.Published {
+			continue
+		}
+
+		filtered = append(filtered, t)
+	}
+
+	return filtered
 }
 
 // StartTest creates a new test attempt and displays the first question

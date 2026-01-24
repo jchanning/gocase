@@ -23,7 +23,7 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 	query := `
 		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
@@ -44,7 +44,7 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 		err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.TopicID,
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
-			&t.PassingScore, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
 		)
 		if err != nil {
@@ -65,6 +65,88 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 	return tests, rows.Err()
 }
 
+// Update updates an existing test
+func (r *TestRepository) Update(ctx context.Context, test *models.Test) error {
+	query := `
+		UPDATE tests
+		SET title = $1, description = $2, subject_id = $3, topic_id = $4,
+		    exam_standard = $5, difficulty = $6, time_limit_minutes = $7,
+		    passing_score = $8, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $9
+		RETURNING updated_at`
+
+	return r.pool.QueryRow(ctx, query,
+		test.Title, test.Description, test.SubjectID, test.TopicID,
+		test.ExamStandard, test.Difficulty, test.TimeLimitMinutes,
+		test.PassingScore, test.ID,
+	).Scan(&test.UpdatedAt)
+}
+
+// PublishTest publishes a test making it available to students
+func (r *TestRepository) PublishTest(ctx context.Context, testID int) error {
+	query := `UPDATE tests SET published = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, testID)
+	return err
+}
+
+// UnpublishTest unpublishes a test
+func (r *TestRepository) UnpublishTest(ctx context.Context, testID int) error {
+	query := `UPDATE tests SET published = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, testID)
+	return err
+}
+
+// DeleteTest deletes a test and all its questions
+func (r *TestRepository) DeleteTest(ctx context.Context, testID int) error {
+	query := `DELETE FROM tests WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, testID)
+	return err
+}
+
+// UpdateTestNotes updates the notes filename for a test
+func (r *TestRepository) UpdateTestNotes(ctx context.Context, testID int, notesFilename *string) error {
+	query := `UPDATE tests SET notes_filename = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err := r.pool.Exec(ctx, query, notesFilename, testID)
+	return err
+}
+
+// DeleteQuestion deletes a question
+func (r *TestRepository) DeleteQuestion(ctx context.Context, questionID int) error {
+	query := `DELETE FROM questions WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, questionID)
+	return err
+}
+
+// UpdateQuestion updates a question
+func (r *TestRepository) UpdateQuestion(ctx context.Context, question *models.Question) error {
+	query := `
+		UPDATE questions
+		SET question_text = $1, image_url = $2, points = $3, question_order = $4
+		WHERE id = $5`
+
+	_, err := r.pool.Exec(ctx, query,
+		question.QuestionText, question.ImageURL, question.Points, question.QuestionOrder, question.ID)
+	return err
+}
+
+// UpdateAnswerOption updates an answer option
+func (r *TestRepository) UpdateAnswerOption(ctx context.Context, option *models.AnswerOption) error {
+	query := `
+		UPDATE answer_options
+		SET option_text = $1, is_correct = $2
+		WHERE id = $3`
+
+	_, err := r.pool.Exec(ctx, query, option.OptionText, option.IsCorrect, option.ID)
+	return err
+}
+
+// DeleteAnswerOption deletes an answer option
+func (r *TestRepository) DeleteAnswerOption(ctx context.Context, optionID int) error {
+	query := `DELETE FROM answer_options WHERE id = $1`
+	_, err := r.pool.Exec(ctx, query, optionID)
+	return err
+}
+
 // GetByID retrieves a test by ID with all its questions and options
 func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, error) {
 	// Get test details
@@ -72,7 +154,7 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 	query := `
 		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
@@ -84,7 +166,7 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&test.ID, &test.Title, &test.Description, &test.SubjectID, &test.TopicID,
 		&test.ExamStandard, &test.Difficulty, &test.TimeLimitMinutes,
-		&test.PassingScore, &test.CreatedBy, &test.CreatedAt, &test.UpdatedAt,
+		&test.PassingScore, &test.Published, &test.NotesFilename, &test.CreatedBy, &test.CreatedAt, &test.UpdatedAt,
 		&subjectID, &subjectName, &subjectDesc,
 	)
 	if err != nil {
@@ -282,7 +364,7 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 	query := `
 		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
@@ -304,7 +386,7 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 		err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.TopicID,
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
-			&t.PassingScore, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
 		)
 		if err != nil {

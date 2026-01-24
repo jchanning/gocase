@@ -1,0 +1,80 @@
+{{define "content"}}
+<div class="mb-8">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">Test History</h2>
+    <p class="text-gray-600">Review completed tests and filter by student, test, date, or score.</p>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Student</label>
+            <input name="student" value="{{.Filters.StudentName}}" class="w-full border rounded px-3 py-2" placeholder="Name contains" {{if eq .Session.Role "student"}}disabled{{end}}>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Test</label>
+            <input name="test" value="{{.Filters.TestName}}" class="w-full border rounded px-3 py-2" placeholder="Title contains">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Date From</label>
+            <input type="date" name="date_from" value="{{if .Filters.DateFrom}}{{.Filters.DateFrom.Format "2006-01-02"}}{{end}}" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Date To</label>
+            <input type="date" name="date_to" value="{{if .Filters.DateTo}}{{.Filters.DateTo.Format "2006-01-02"}}{{end}}" class="w-full border rounded px-3 py-2">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Min Score</label>
+            <input type="number" name="score_min" value="{{if .Filters.ScoreMin}}{{.Filters.ScoreMin}}{{end}}" class="w-full border rounded px-3 py-2" min="0" max="100">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-600 mb-1">Max Score</label>
+            <input type="number" name="score_max" value="{{if .Filters.ScoreMax}}{{.Filters.ScoreMax}}{{end}}" class="w-full border rounded px-3 py-2" min="0" max="100">
+        </div>
+        <div class="md:col-span-6 flex gap-2 justify-end">
+            <a href="/history" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">Reset</a>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Apply Filters</button>
+        </div>
+    </form>
+</div>
+
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="text-left py-3 px-4">Student</th>
+                    <th class="text-left py-3 px-4">Test</th>
+                    <th class="text-left py-3 px-4">Score</th>
+                    <th class="text-left py-3 px-4">Difficulty</th>
+                    <th class="text-left py-3 px-4">Date Taken</th>
+                    <th class="text-left py-3 px-4">Time Taken</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Attempts}}
+                    {{range .Attempts}}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4">{{if .User}}{{.User.Username}}{{else}}-{{end}}</td>
+                        <td class="py-3 px-4">{{if .Test}}{{.Test.Title}}{{else}}-{{end}}</td>
+                        <td class="py-3 px-4">
+                            {{if and .Score .TotalPoints}}
+                                {{printf "%d / %d" (intValue .Score) (intValue .TotalPoints)}}
+                            {{else if .Score}}
+                                {{printf "%d" (intValue .Score)}}
+                            {{else}}-{{end}}
+                        </td>
+                        <td class="py-3 px-4">{{if .Test}}{{.Test.Difficulty}}{{end}}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{if .CompletedAt}}{{.CompletedAt.Format "02 Jan 2006 15:04"}}{{else}}{{.StartedAt.Format "02 Jan 2006 15:04"}}{{end}}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{if .TimeTakenSeconds}}{{printf "%d sec" *.TimeTakenSeconds}}{{else}}-{{end}}</td>
+                    </tr>
+                    {{end}}
+                {{else}}
+                    <tr>
+                        <td colspan="6" class="text-center text-gray-500 py-6">No attempts found for the selected filters.</td>
+                    </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{end}}
