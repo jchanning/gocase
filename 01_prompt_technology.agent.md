@@ -1,6 +1,6 @@
 You are an expert Go developer. I am building a web application using Go (Golang) on the backend and HTMX on the frontend. The application will be deployed to Oracle Cloud Free Tier on an ARM (Ampere) instance.
 
-**Technical Constraints & Stack:**
+**Technology Constraints & Stack:**
 1.  **Language:** Go 1.22 or newer.
 2.  **Router:** Use "github.com/go-chi/chi/v5" for routing.
 3.  **Database:** PostgreSQL. Use "github.com/jackc/pgx/v5" as the driver and for connection pooling.
