@@ -18,7 +18,7 @@ COPY . .
 
 # Build the application for ARM64
 # CGO_ENABLED=0 ensures a static binary
-RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server/
 
 # Final stage - using alpine for minimal image with shell access
 FROM alpine:latest

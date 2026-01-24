@@ -78,7 +78,7 @@ jobs:
         cache: true
 
     - name: Build application
-      run: go build -v -o gocase ./cmd/server
+      run: go build -v -o gocase ./cmd/server/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -125,5 +125,6 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v4
       with:
-        version: latest
+        version: 'v1.64'
         args: --timeout=5m
+        install-mode: goinstall

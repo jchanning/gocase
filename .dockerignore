@@ -1,0 +1,14 @@
+.git
+.github
+.gitignore
+.env
+.env.example
+*.md
+*.exe
+*.exe~
+.DS_Store
+*.dylib
+sample_tests
+QUICKSTART.md
+SETUP.md
+IMPLEMENTATION.md
