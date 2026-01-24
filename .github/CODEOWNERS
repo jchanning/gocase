@@ -1,0 +1,7 @@
+# Default owners for everything in the repo
+* @jchanning
+
+# Specific paths
+/internal/ @jchanning
+/views/ @jchanning
+/.github/workflows/ @jchanning
