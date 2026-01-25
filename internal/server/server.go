@@ -74,6 +74,7 @@ func NewServer(db *database.Service) *Server {
 		r.Post("/test/answer", testHandler.SubmitAnswer)
 		r.Post("/test/submit", testHandler.SubmitTest)
 		r.Get("/test/results", testHandler.ViewResults)
+		r.Get("/test/review", testHandler.ReviewTest)
 
 		// Admin/Teacher routes
 		r.Group(func(r chi.Router) {

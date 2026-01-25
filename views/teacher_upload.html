@@ -153,8 +153,17 @@ function validateAndUpload() {
                     window.location.href = '/teacher/dashboard';
                 }, 2000);
             } else {
+                // Display detailed error message
+                let errorMsg = data.error || data.message || 'Upload failed';
+                if (data.errors) {
+                    // If there are validation errors, show them
+                    const errorList = Object.entries(data.errors)
+                        .map(([field, msg]) => `<li><strong>${field}:</strong> ${msg}</li>`)
+                        .join('');
+                    errorMsg = `<ul class="list-disc list-inside mt-2">${errorList}</ul>`;
+                }
                 uploadStatus.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    Error: ${data.message || 'Upload failed'}
+                    <strong>Upload failed:</strong><br>${errorMsg}
                 </div>`;
             }
         })

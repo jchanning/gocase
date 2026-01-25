@@ -54,9 +54,6 @@
     </div>
 
     <!-- Question Review -->
-    {{if or (eq .Test.Difficulty "Easy") (eq .Test.Difficulty "Medium")}}
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-2xl font-bold text-gray-800 mb-6">Question Review</h3>
         
         {{range $index, $question := .Test.Questions}}
         {{$answer := index $.Answers $question.ID}}
@@ -84,7 +81,7 @@
                 {{range $option := $question.Options}}
                 <div class="p-3 border-2 rounded-lg
                     {{if $option.IsCorrect}}border-green-500 bg-green-50
-                    {{else if and $answer $answer.SelectedOptionID (eq $answer.SelectedOptionID $option.ID)}}border-red-500 bg-red-50
+                    {{else if and $answer $answer.SelectedOptionID (eqPtr $answer.SelectedOptionID $option.ID)}}border-red-500 bg-red-50
                     {{else}}border-gray-200{{end}}">
                     <div class="flex items-center justify-between">
                         <span class="flex-grow {{if $option.IsCorrect}}font-semibold text-green-800{{end}}">
@@ -92,7 +89,7 @@
                         </span>
                         {{if $option.IsCorrect}}
                         <span class="text-green-600 font-semibold">✓ Correct Answer</span>
-                        {{else if and $answer $answer.SelectedOptionID (eq $answer.SelectedOptionID $option.ID)}}
+                        {{else if and $answer $answer.SelectedOptionID (eqPtr $answer.SelectedOptionID $option.ID)}}
                         <span class="text-red-600 font-semibold">✗ Your Answer</span>
                         {{end}}
                     </div>
@@ -102,14 +99,6 @@
         </div>
         {{end}}
     </div>
-    {{else}}
-    <div class="bg-white rounded-lg shadow-md p-6 text-center">
-        <p class="text-gray-600">
-            For Hard difficulty tests, detailed answers are not shown immediately.
-            Please review with your teacher.
-        </p>
-    </div>
-    {{end}}
 
     <div class="mt-8 flex justify-center gap-4">
         <a href="/tests" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">

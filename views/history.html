@@ -65,7 +65,7 @@
                         </td>
                         <td class="py-3 px-4">{{if .Test}}{{.Test.Difficulty}}{{end}}</td>
                         <td class="py-3 px-4 text-sm text-gray-600">{{if .CompletedAt}}{{.CompletedAt.Format "02 Jan 2006 15:04"}}{{else}}{{.StartedAt.Format "02 Jan 2006 15:04"}}{{end}}</td>
-                        <td class="py-3 px-4 text-sm text-gray-600">{{if .TimeTakenSeconds}}{{printf "%d sec" *.TimeTakenSeconds}}{{else}}-{{end}}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600">{{if .TimeTakenSeconds}}{{printf "%d sec" .TimeTakenSeconds}}{{else}}-{{end}}</td>
                     </tr>
                     {{end}}
                 {{else}}

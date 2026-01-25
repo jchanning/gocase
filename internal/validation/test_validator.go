@@ -41,7 +41,7 @@ func (v *TestValidator) ValidateTest(test *models.Test) bool {
 	if test.ExamStandard == "" {
 		v.addError("exam_standard", "Exam standard is required")
 	} else if !isValidExamStandard(test.ExamStandard) {
-		v.addError("exam_standard", "Invalid exam standard. Must be GCSE, A-Level, Primary, or Secondary")
+		v.addError("exam_standard", "Invalid exam standard. Must be GCSE, IGCSE, A-Level, Primary, or Secondary")
 	}
 
 	if test.Difficulty == "" {
@@ -149,7 +149,7 @@ func (v *TestValidator) addError(field, message string) {
 }
 
 func isValidExamStandard(standard string) bool {
-	standards := []string{"GCSE", "A-Level", "Primary", "Secondary"}
+	standards := []string{"GCSE", "IGCSE", "A-Level", "Primary", "Secondary"}
 	for _, s := range standards {
 		if s == standard {
 			return true

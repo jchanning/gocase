@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS tests (
     description TEXT,
     subject_id INTEGER REFERENCES subjects(id) ON DELETE SET NULL,
     topic_id INTEGER REFERENCES topics(id) ON DELETE SET NULL,
-    exam_standard VARCHAR(50) NOT NULL CHECK (exam_standard IN ('GCSE', 'A-Level', 'Primary', 'Secondary')),
+    exam_standard VARCHAR(50) NOT NULL CHECK (exam_standard IN ('GCSE', 'IGCSE', 'A-Level', 'Primary', 'Secondary')),
     difficulty VARCHAR(20) NOT NULL CHECK (difficulty IN ('Easy', 'Medium', 'Hard')),
     time_limit_minutes INTEGER NOT NULL DEFAULT 10,
     passing_score INTEGER NOT NULL DEFAULT 60,

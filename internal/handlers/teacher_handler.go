@@ -132,7 +132,12 @@ func (h *TeacherHandler) UploadTest(w http.ResponseWriter, r *http.Request) {
 	var testUpload models.TestUpload
 	if err := json.NewDecoder(r.Body).Decode(&testUpload); err != nil {
 		log.Printf("Error decoding JSON: %v", err)
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Invalid JSON format: %v", err),
+		})
 		return
 	}
 
@@ -149,7 +154,12 @@ func (h *TeacherHandler) UploadTest(w http.ResponseWriter, r *http.Request) {
 	test, err := persistTestUpload(r.Context(), h.testRepo, testUpload, session.UserID)
 	if err != nil {
 		log.Printf("Error creating test: %v", err)
-		http.Error(w, "Failed to create test", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   fmt.Sprintf("Failed to create test: %v", err),
+		})
 		return
 	}
 

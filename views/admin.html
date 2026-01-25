@@ -180,7 +180,16 @@ fileInput.addEventListener('change', async function(e) {
             uploadStatus.innerHTML = `<p class="text-green-600 font-semibold">✅ ${result.message}</p>`;
             setTimeout(() => location.reload(), 2000);
         } else {
-            uploadStatus.innerHTML = `<p class="text-red-600">❌ Upload failed</p>`;
+            // Display detailed error message
+            let errorMsg = result.error || 'Upload failed';
+            if (result.errors) {
+                // If there are validation errors, show them
+                const errorList = Object.entries(result.errors)
+                    .map(([field, msg]) => `<li>${field}: ${msg}</li>`)
+                    .join('');
+                errorMsg = `<ul class="list-disc list-inside">${errorList}</ul>`;
+            }
+            uploadStatus.innerHTML = `<div class="text-red-600"><p class="font-semibold">❌ Upload failed:</p>${errorMsg}</div>`;
         }
     } catch (error) {
         uploadStatus.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;

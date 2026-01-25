@@ -38,23 +38,13 @@
     <!-- Difficulty Levels Management -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Difficulty Levels</h2>
-        <div class="grid grid-cols-4 gap-4">
-            <div class="p-4 bg-green-50 border border-green-200 rounded text-center">
-                <div class="text-2xl mb-2">🟢</div>
-                <div class="font-semibold">Easy</div>
+        <div class="grid grid-cols-3 gap-4">
+            {{range $index, $difficulty := .Difficulties}}
+            <div class="p-4 {{if eq $difficulty "Easy"}}bg-green-50 border-green-200{{else if eq $difficulty "Medium"}}bg-blue-50 border-blue-200{{else}}bg-orange-50 border-orange-200{{end}} border rounded text-center">
+                <div class="text-2xl mb-2">{{if eq $difficulty "Easy"}}🟢{{else if eq $difficulty "Medium"}}🔵{{else}}🟠{{end}}</div>
+                <div class="font-semibold">{{$difficulty}}</div>
             </div>
-            <div class="p-4 bg-blue-50 border border-blue-200 rounded text-center">
-                <div class="text-2xl mb-2">🔵</div>
-                <div class="font-semibold">Medium</div>
-            </div>
-            <div class="p-4 bg-orange-50 border border-orange-200 rounded text-center">
-                <div class="text-2xl mb-2">🟠</div>
-                <div class="font-semibold">Hard</div>
-            </div>
-            <div class="p-4 bg-red-50 border border-red-200 rounded text-center">
-                <div class="text-2xl mb-2">🔴</div>
-                <div class="font-semibold">Expert</div>
-            </div>
+            {{end}}
         </div>
         <p class="text-sm text-gray-600 mt-4">Difficulty levels are predefined and cannot be modified.</p>
     </div>
@@ -62,23 +52,13 @@
     <!-- Exam Standards Management -->
     <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Exam Standards</h2>
-        <div class="grid grid-cols-4 gap-4">
-            <div class="p-4 bg-purple-50 border border-purple-200 rounded text-center">
-                <div class="font-semibold">GCSE</div>
-                <div class="text-sm text-gray-600">General Certificate</div>
+        <div class="grid grid-cols-5 gap-4">
+            {{range $index, $standard := .ExamStandards}}
+            <div class="p-4 {{if eq $standard "Primary"}}bg-blue-50 border-blue-200{{else if eq $standard "Secondary"}}bg-green-50 border-green-200{{else if eq $standard "GCSE"}}bg-purple-50 border-purple-200{{else if eq $standard "IGCSE"}}bg-pink-50 border-pink-200{{else}}bg-indigo-50 border-indigo-200{{end}} border rounded text-center">
+                <div class="font-semibold">{{$standard}}</div>
+                <div class="text-sm text-gray-600">{{if eq $standard "Primary"}}Primary School{{else if eq $standard "Secondary"}}Secondary School{{else if eq $standard "GCSE"}}General Certificate{{else if eq $standard "IGCSE"}}International GCSE{{else}}Advanced Level{{end}}</div>
             </div>
-            <div class="p-4 bg-indigo-50 border border-indigo-200 rounded text-center">
-                <div class="font-semibold">A-Level</div>
-                <div class="text-sm text-gray-600">Advanced Level</div>
-            </div>
-            <div class="p-4 bg-pink-50 border border-pink-200 rounded text-center">
-                <div class="font-semibold">IB</div>
-                <div class="text-sm text-gray-600">International Baccalaureate</div>
-            </div>
-            <div class="p-4 bg-teal-50 border border-teal-200 rounded text-center">
-                <div class="font-semibold">Other</div>
-                <div class="text-sm text-gray-600">Other Standards</div>
-            </div>
+            {{end}}
         </div>
         <p class="text-sm text-gray-600 mt-4">Exam standards are predefined and cannot be modified.</p>
     </div>

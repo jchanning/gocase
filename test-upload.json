@@ -1,0 +1,18 @@
+{
+  "title": "Test Biology",
+  "description": "Test description",
+  "subject": "Biology",
+  "topic": "Nature and Variety of Living Organisms",
+  "exam_standard": "IGCSE",
+  "difficulty": "Medium",
+  "time_limit_minutes": 20,
+  "passing_score": 70,
+  "questions": [
+    {
+      "question_text": "Which acronym summarises the characteristics of all living organisms?",
+      "points": 1,
+      "options": ["MRS C GREN", "MRS G RACE", "MRS C GREEN", "MRS G CREN"],
+      "correct_index": 0
+    }
+  ]
+}

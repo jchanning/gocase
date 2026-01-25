@@ -2,6 +2,12 @@ package models
 
 import "time"
 
+// Valid difficulty levels
+var ValidDifficulties = []string{"Easy", "Medium", "Hard"}
+
+// Valid exam standards
+var ValidExamStandards = []string{"Primary", "Secondary", "GCSE", "IGCSE", "A-Level"}
+
 // User represents a user in the system (student, teacher, or admin)
 type User struct {
 	ID           int       `json:"id"`

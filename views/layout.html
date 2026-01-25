@@ -24,12 +24,13 @@
                 {{if eq .Session.Role "student"}}
                 <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
                 <a href="/tests" class="hover:text-blue-200">Tests</a>
+                <a href="/history" class="hover:text-blue-200">History</a>
                 {{else if eq .Session.Role "teacher"}}
                 <a href="/teacher/dashboard" class="hover:text-blue-200">Dashboard</a>
                 <a href="/teacher/upload" class="hover:text-blue-200">Upload Test</a>
                 <a href="/tests" class="hover:text-blue-200">Browse Tests</a>
                 {{else if eq .Session.Role "admin"}}
-                <a href="/admin" class="hover:text-blue-200">Admin</a>
+                <a href="/admin" class="hover:text-blue-200">Dashboard</a>
                 <a href="/admin/manage" class="hover:text-blue-200">Manage</a>
                 <a href="/admin/users" class="hover:text-blue-200">Users</a>
                 <a href="/tests" class="hover:text-blue-200">Tests</a>

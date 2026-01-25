@@ -598,7 +598,104 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 			}
 			return a % b
 		},
+		"eqPtr": func(ptr *int, val int) bool {
+			if ptr == nil {
+				return false
+			}
+			return *ptr == val
+		},
 	}).ParseFiles("views/layout.html", "views/test_results.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// ReviewTest displays a detailed question-by-question review of a completed test
+func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+	attemptIDStr := r.URL.Query().Get("attempt_id")
+	attemptID, err := strconv.Atoi(attemptIDStr)
+	if err != nil {
+		http.Error(w, "Invalid attempt ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get attempt
+	attempt, err := h.attemptRepo.GetByID(r.Context(), attemptID)
+	if err != nil {
+		log.Printf("Error fetching attempt: %v", err)
+		http.Error(w, "Attempt not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership or admin/teacher role
+	if attempt.UserID != session.UserID && session.Role != "admin" && session.Role != "teacher" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+
+	// Get test with full details
+	test, err := h.testRepo.GetByID(r.Context(), attempt.TestID)
+	if err != nil {
+		log.Printf("Error fetching test: %v", err)
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	// Get answers
+	answers, err := h.attemptRepo.GetAnswersByAttemptID(r.Context(), attemptID)
+	if err != nil {
+		log.Printf("Error fetching answers: %v", err)
+	}
+
+	// Create map of answers and count correct/incorrect
+	answerMap := make(map[int]*models.StudentAnswer)
+	correctCount := 0
+	incorrectCount := 0
+	for i := range answers {
+		answerMap[answers[i].QuestionID] = &answers[i]
+		if answers[i].IsCorrect != nil && *answers[i].IsCorrect {
+			correctCount++
+		} else if answers[i].IsCorrect != nil {
+			incorrectCount++
+		}
+	}
+
+	// Calculate percentage
+	var percentage float64
+	if attempt.TotalPoints != nil && *attempt.TotalPoints > 0 && attempt.Score != nil {
+		percentage = (float64(*attempt.Score) / float64(*attempt.TotalPoints)) * 100
+	}
+
+	passed := percentage >= float64(test.PassingScore)
+
+	data := map[string]interface{}{
+		"Session":        session,
+		"Test":           test,
+		"Attempt":        attempt,
+		"Answers":        answerMap,
+		"Percentage":     percentage,
+		"Passed":         passed,
+		"CorrectCount":   correctCount,
+		"IncorrectCount": incorrectCount,
+	}
+
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"eqPtr": func(ptr *int, val int) bool {
+			if ptr == nil {
+				return false
+			}
+			return *ptr == val
+		},
+	}).ParseFiles("views/layout.html", "views/test_review.html")
 	if err != nil {
 		log.Printf("Error parsing templates: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

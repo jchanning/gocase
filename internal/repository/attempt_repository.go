@@ -128,9 +128,13 @@ func (r *AttemptRepository) GetUserAttempts(ctx context.Context, userID int, lim
 		       ta.score, ta.total_points, ta.time_taken_seconds, ta.status, ta.created_at,
 		       t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes, t.passing_score,
-		       t.created_by, t.created_at, t.updated_at
+		       t.created_by, t.created_at, t.updated_at,
+		       s.id, s.name, s.description,
+		       tp.id, tp.name, tp.description
 		FROM test_attempts ta
 		JOIN tests t ON ta.test_id = t.id
+		LEFT JOIN subjects s ON t.subject_id = s.id
+		LEFT JOIN topics tp ON t.topic_id = tp.id
 		WHERE ta.user_id = $1
 		ORDER BY ta.created_at DESC
 		LIMIT $2`
@@ -146,6 +150,10 @@ func (r *AttemptRepository) GetUserAttempts(ctx context.Context, userID int, lim
 		var a models.TestAttempt
 		a.Test = &models.Test{}
 
+		// Variables for nullable subject and topic
+		var subjectID, topicID *int
+		var subjectName, subjectDesc, topicName, topicDesc *string
+
 		err := rows.Scan(
 			&a.ID, &a.UserID, &a.TestID, &a.StartedAt, &a.CompletedAt,
 			&a.Score, &a.TotalPoints, &a.TimeTakenSeconds, &a.Status, &a.CreatedAt,
@@ -153,9 +161,29 @@ func (r *AttemptRepository) GetUserAttempts(ctx context.Context, userID int, lim
 			&a.Test.TopicID, &a.Test.ExamStandard, &a.Test.Difficulty,
 			&a.Test.TimeLimitMinutes, &a.Test.PassingScore, &a.Test.CreatedBy,
 			&a.Test.CreatedAt, &a.Test.UpdatedAt,
+			&subjectID, &subjectName, &subjectDesc,
+			&topicID, &topicName, &topicDesc,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		// Populate subject if present
+		if subjectID != nil && subjectName != nil {
+			a.Test.Subject = &models.Subject{
+				ID:          *subjectID,
+				Name:        *subjectName,
+				Description: *subjectDesc,
+			}
+		}
+
+		// Populate topic if present
+		if topicID != nil && topicName != nil {
+			a.Test.Topic = &models.Topic{
+				ID:          *topicID,
+				Name:        *topicName,
+				Description: *topicDesc,
+			}
 		}
 
 		attempts = append(attempts, a)
