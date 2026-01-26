@@ -104,6 +104,8 @@ func NewServer(db *database.Service) *Server {
 				r.Get("/admin/manage", adminHandler.ShowManagement)
 				r.Post("/admin/manage/subjects", adminHandler.CreateSubject)
 				r.Delete("/admin/manage/subjects/{id}", adminHandler.DeleteSubject)
+				r.Get("/admin/test/{id}/edit", adminHandler.EditTest)
+				r.Get("/admin/test/{id}/preview", teacherHandler.PreviewTest)
 				r.Post("/admin/test/{id}/delete", adminHandler.DeleteTest)
 				r.Delete("/admin/test/{id}", adminHandler.DeleteTest)
 				r.Post("/admin/test/{id}/update", adminHandler.UpdateTest)

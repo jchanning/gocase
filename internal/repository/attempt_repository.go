@@ -16,6 +16,12 @@ type AttemptRepository struct {
 	pool *pgxpool.Pool
 }
 
+// StreakStats represents current and best streak values.
+type StreakStats struct {
+	Current int
+	Best    int
+}
+
 // AttemptSearchFilter describes optional filters for querying attempts.
 type AttemptSearchFilter struct {
 	UserID      *int
@@ -190,6 +196,64 @@ func (r *AttemptRepository) GetUserAttempts(ctx context.Context, userID int, lim
 	}
 
 	return attempts, rows.Err()
+}
+
+// GetUserStreakStats calculates the current and best streak for a user based on completed attempts.
+// Streak is counted in whole days; completing at least one test on a day extends the streak.
+func (r *AttemptRepository) GetUserStreakStats(ctx context.Context, userID int) (StreakStats, error) {
+	stats := StreakStats{}
+
+	// Fetch distinct completion dates (UTC) in descending order
+	query := `
+		SELECT DISTINCT DATE(completed_at) as day
+		FROM test_attempts
+		WHERE user_id = $1 AND status = 'completed' AND completed_at IS NOT NULL
+		ORDER BY day DESC`
+
+	rows, err := r.pool.Query(ctx, query, userID)
+	if err != nil {
+		return stats, err
+	}
+	defer rows.Close()
+
+	var prevDay *time.Time
+	for rows.Next() {
+		var day time.Time
+		if err := rows.Scan(&day); err != nil {
+			return stats, err
+		}
+
+		if prevDay == nil {
+			// First day initializes streaks
+			stats.Current = 1
+			stats.Best = 1
+		} else {
+			// Check if this day is consecutive to previous day
+			diff := prevDay.Sub(day).Hours() / 24
+			if diff == 1 {
+				stats.Current++
+				if stats.Current > stats.Best {
+					stats.Best = stats.Current
+				}
+			} else {
+				// Streak broken; only update best if needed
+				if stats.Current > stats.Best {
+					stats.Best = stats.Current
+				}
+				// Reset current streak to 1 (this day counts as new streak)
+				stats.Current = 1
+			}
+		}
+
+		prevDay = &day
+	}
+
+	// Ensure best is at least current if only one day or all consecutive
+	if stats.Best < stats.Current {
+		stats.Best = stats.Current
+	}
+
+	return stats, rows.Err()
 }
 
 // GetUserTestStats retrieves statistics for a user's performance on tests

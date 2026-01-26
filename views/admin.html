@@ -92,8 +92,8 @@
                     </td>
                     <td class="py-3 px-4 text-sm text-gray-600">{{.CreatedAt.Format "Jan 02, 2006"}}</td>
                     <td class="py-3 px-4">
-                        <button onclick="openEditModal({{.ID}}, '{{.Title}}', {{if .NotesFilename}}'{{.NotesFilename}}'{{else}}null{{end}})" 
-                                class="text-blue-600 hover:text-blue-800 font-semibold mr-3">Edit</button>
+                        <a href="/admin/test/{{.ID}}/edit" 
+                                class="text-blue-600 hover:text-blue-800 font-semibold mr-3">Edit</a>
                         <form method="post" action="/admin/test/{{.ID}}/delete" class="inline" onsubmit="return confirm('Delete this test?');">
                             <button class="text-red-600 hover:text-red-800 font-semibold">Delete</button>
                         </form>
@@ -106,52 +106,6 @@
     {{else}}
     <p class="text-gray-500 text-center py-8">No tests created yet. Upload your first test above!</p>
     {{end}}
-</div>
-
-<!-- Edit Test Modal -->
-<div id="editModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 class="text-xl font-bold mb-4">Edit Test Notes</h3>
-        
-        <form id="editForm" enctype="multipart/form-data">
-            <input type="hidden" id="edit_test_id" name="test_id">
-            
-            <div class="mb-4">
-                <p class="text-sm font-medium text-gray-700 mb-2">Test: <span id="edit_test_title" class="font-bold"></span></p>
-            </div>
-            
-            <div class="mb-4" id="currentNotesSection" style="display:none;">
-                <p class="text-sm text-gray-700 mb-2">Current Notes: <span id="current_notes_filename" class="font-semibold"></span></p>
-                <button type="button" onclick="removeNotes()" class="text-red-600 hover:text-red-800 text-sm font-semibold">
-                    Remove Notes
-                </button>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Upload New Notes (PDF or PowerPoint)
-                </label>
-                <div id="dropZone" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition">
-                    <div class="text-4xl mb-2">📄</div>
-                    <p class="text-sm text-gray-600">Drag and drop or click to select</p>
-                    <p class="text-xs text-gray-500 mt-1">PDF, PPT, PPTX only</p>
-                    <input type="file" id="notes_file" name="notes_file" accept=".pdf,.ppt,.pptx" class="hidden">
-                </div>
-                <p id="selectedFileName" class="text-sm text-gray-600 mt-2"></p>
-            </div>
-            
-            <div id="editStatus" class="mb-4"></div>
-            
-            <div class="flex gap-3">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded">
-                    Save Changes
-                </button>
-                <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-4 py-2 rounded">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
 </div>
 
 <script>
@@ -195,133 +149,5 @@ fileInput.addEventListener('change', async function(e) {
         uploadStatus.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
     }
 });
-
-// Edit Modal Functions
-function openEditModal(testId, testTitle, notesFilename) {
-    document.getElementById('edit_test_id').value = testId;
-    document.getElementById('edit_test_title').textContent = testTitle;
-    
-    const currentNotesSection = document.getElementById('currentNotesSection');
-    if (notesFilename) {
-        document.getElementById('current_notes_filename').textContent = notesFilename;
-        currentNotesSection.style.display = 'block';
-    } else {
-        currentNotesSection.style.display = 'none';
-    }
-    
-    document.getElementById('editModal').classList.remove('hidden');
-}
-
-function closeEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-    document.getElementById('editForm').reset();
-    document.getElementById('selectedFileName').textContent = '';
-}
-
-// Drag and drop for notes upload
-const dropZone = document.getElementById('dropZone');
-const notesFileInput = document.getElementById('notes_file');
-
-dropZone.addEventListener('click', () => notesFileInput.click());
-
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-blue-500', 'bg-blue-50');
-});
-
-dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        notesFileInput.files = files;
-        updateSelectedFileName(files[0].name);
-    }
-});
-
-notesFileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        updateSelectedFileName(e.target.files[0].name);
-    }
-});
-
-function updateSelectedFileName(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    const validExtensions = ['pdf', 'ppt', 'pptx'];
-    
-    if (validExtensions.includes(ext)) {
-        document.getElementById('selectedFileName').textContent = `Selected: ${filename}`;
-        document.getElementById('selectedFileName').className = 'text-sm text-green-600 mt-2';
-    } else {
-        document.getElementById('selectedFileName').textContent = `Invalid file type. Only PDF and PowerPoint files are allowed.`;
-        document.getElementById('selectedFileName').className = 'text-sm text-red-600 mt-2';
-        notesFileInput.value = '';
-    }
-}
-
-// Handle form submission
-document.getElementById('editForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const testId = document.getElementById('edit_test_id').value;
-    const formData = new FormData();
-    formData.append('test_id', testId);
-    
-    const notesFile = document.getElementById('notes_file').files[0];
-    if (notesFile) {
-        formData.append('notes_file', notesFile);
-    }
-    
-    const editStatus = document.getElementById('editStatus');
-    editStatus.innerHTML = '<p class="text-blue-600">Saving...</p>';
-    
-    try {
-        const response = await fetch(`/admin/test/${testId}/update`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            editStatus.innerHTML = '<p class="text-green-600 font-semibold">✅ Updated successfully!</p>';
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            editStatus.innerHTML = `<p class="text-red-600">❌ ${result.message || 'Update failed'}</p>`;
-        }
-    } catch (error) {
-        editStatus.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
-    }
-});
-
-async function removeNotes() {
-    if (!confirm('Remove notes from this test?')) return;
-    
-    const testId = document.getElementById('edit_test_id').value;
-    const editStatus = document.getElementById('editStatus');
-    editStatus.innerHTML = '<p class="text-blue-600">Removing notes...</p>';
-    
-    try {
-        const response = await fetch(`/admin/test/${testId}/remove-notes`, {
-            method: 'POST'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            editStatus.innerHTML = '<p class="text-green-600 font-semibold">✅ Notes removed!</p>';
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            editStatus.innerHTML = `<p class="text-red-600">❌ ${result.message || 'Failed to remove notes'}</p>`;
-        }
-    } catch (error) {
-        editStatus.innerHTML = `<p class="text-red-600">❌ Error: ${error.message}</p>`;
-    }
-}
 </script>
 {{end}}

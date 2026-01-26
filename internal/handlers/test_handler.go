@@ -517,6 +517,14 @@ func (h *TestHandler) SubmitTest(w http.ResponseWriter, r *http.Request) {
 		stats.TestsPassed++
 	}
 
+	// Recalculate streaks based on completed attempts
+	if streaks, err := h.attemptRepo.GetUserStreakStats(r.Context(), session.UserID); err == nil {
+		stats.CurrentStreak = streaks.Current
+		stats.BestStreak = streaks.Best
+	} else {
+		log.Printf("Error calculating streaks: %v", err)
+	}
+
 	h.userRepo.UpdateUserStats(r.Context(), stats)
 
 	// Redirect to results

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"my-app/internal/auth"
 	"my-app/internal/models"
@@ -443,6 +444,45 @@ func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// EditTest displays the edit page for a test (admin-only)
+func (h *AdminHandler) EditTest(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+	testIDStr := r.PathValue("id")
+	testID, _ := strconv.Atoi(testIDStr)
+
+	// Get existing test
+	test, err := h.testRepo.GetByID(r.Context(), testID)
+	if err != nil {
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	subjects, err := h.testRepo.GetSubjects(r.Context())
+	if err != nil {
+		subjects = []models.Subject{}
+	}
+
+	data := map[string]interface{}{
+		"Session":  session,
+		"Test":     test,
+		"Subjects": subjects,
+	}
+
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}).ParseFiles("views/layout.html", "views/edit_test.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 // DeleteTest removes a test and its questions (admin-only).
 func (h *AdminHandler) DeleteTest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
@@ -463,14 +503,11 @@ func (h *AdminHandler) DeleteTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Test deleted",
-	})
+	// Redirect back to admin dashboard
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
-// UpdateTest handles test notes upload/update
+// UpdateTest handles full test updates including metadata and notes
 func (h *AdminHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -480,32 +517,92 @@ func (h *AdminHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 	testIDStr := r.PathValue("id")
 	testID, err := strconv.Atoi(testIDStr)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"message": "Invalid test ID",
-		})
+		http.Error(w, "Invalid test ID", http.StatusBadRequest)
 		return
 	}
 
-	// Parse multipart form
-	if err := r.ParseMultipartForm(32 << 20); err != nil { // 32 MB max
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"message": "Failed to parse form data",
-		})
-		return
+	// Try to parse multipart form first (for file uploads), then fall back to regular form
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32 MB max
+			http.Error(w, fmt.Sprintf("Failed to parse multipart form data: %v", err), http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse form data: %v", err), http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Get the test first
 	test, err := h.testRepo.GetByID(r.Context(), testID)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"message": "Test not found",
-		})
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	// Check if this is a full update or just notes update
+	titleParam := r.FormValue("title")
+	if titleParam != "" {
+		// Full test update - only update test fields
+		test.Title = titleParam
+		test.Description = r.FormValue("description")
+		test.ExamStandard = r.FormValue("exam_standard")
+		test.Difficulty = r.FormValue("difficulty")
+		test.PassingScore = parseIntOrDefault(r.FormValue("passing_score"), 60)
+		test.TimeLimitMinutes = parseIntOrDefault(r.FormValue("time_limit_minutes"), 10)
+
+		log.Printf("Updating test %d: title=%s, description=%s", testID, test.Title, test.Description)
+
+		// Update test in database
+		if err := h.testRepo.Update(r.Context(), test); err != nil {
+			log.Printf("Error updating test: %v", err)
+			http.Error(w, fmt.Sprintf("Failed to update test: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Test %d updated successfully", testID)
+
+		// Update questions
+		for idx, q := range test.Questions {
+			questionText := r.FormValue(fmt.Sprintf("question_%d_text", idx))
+			pointsStr := r.FormValue(fmt.Sprintf("question_%d_points", idx))
+
+			if questionText != "" {
+				q.QuestionText = questionText
+				q.Points = parseIntOrDefault(pointsStr, 1)
+
+				log.Printf("Updating question %d: text=%s, points=%d", q.ID, q.QuestionText, q.Points)
+
+				if err := h.testRepo.UpdateQuestion(r.Context(), &q); err != nil {
+					log.Printf("Error updating question: %v", err)
+					http.Error(w, fmt.Sprintf("Failed to update question: %v", err), http.StatusInternalServerError)
+					return
+				}
+			}
+
+			// Update answer options and set correct answer
+			correctOptionID := parseIntOrDefault(r.FormValue(fmt.Sprintf("question_%d_correct_option", idx)), 0)
+			for optIdx, opt := range q.Options {
+				optionText := r.FormValue(fmt.Sprintf("question_%d_option_%d_text", idx, optIdx))
+				if optionText != "" {
+					opt.OptionText = optionText
+					opt.IsCorrect = (opt.ID == correctOptionID)
+
+					log.Printf("Updating option %d: text=%s, isCorrect=%v", opt.ID, opt.OptionText, opt.IsCorrect)
+
+					if err := h.testRepo.UpdateAnswerOption(r.Context(), &opt); err != nil {
+						log.Printf("Error updating answer option: %v", err)
+						http.Error(w, fmt.Sprintf("Failed to update answer option: %v", err), http.StatusInternalServerError)
+						return
+					}
+				}
+			}
+		}
+
+		log.Printf("Redirecting to /admin/test/%d/edit", testID)
+		http.Redirect(w, r, fmt.Sprintf("/admin/test/%d/edit", testID), http.StatusSeeOther)
 		return
 	}
 
@@ -523,11 +620,7 @@ func (h *AdminHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 		filename, err := storage.SaveNotesFile(file, header.Filename)
 		if err != nil {
 			log.Printf("Error saving notes file: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"success": false,
-				"message": fmt.Sprintf("Failed to save notes: %v", err),
-			})
+			http.Error(w, fmt.Sprintf("Failed to save notes: %v", err), http.StatusInternalServerError)
 			return
 		}
 
@@ -537,19 +630,11 @@ func (h *AdminHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 	// Update test in database
 	if err := h.testRepo.UpdateTestNotes(r.Context(), testID, test.NotesFilename); err != nil {
 		log.Printf("Error updating test notes: %v", err)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": false,
-			"message": "Failed to update test",
-		})
+		http.Error(w, "Failed to update test", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Test updated successfully",
-	})
+	http.Redirect(w, r, fmt.Sprintf("/admin/test/%d/edit", testID), http.StatusSeeOther)
 }
 
 // RemoveTestNotes removes notes from a test
@@ -634,4 +719,15 @@ func (h *AdminHandler) ServeTestNotes(w http.ResponseWriter, r *http.Request) {
 	// Serve file inline (not as download)
 	w.Header().Set("Content-Disposition", "inline")
 	http.ServeFile(w, r, filePath)
+}
+
+// parseIntOrDefault parses a string as int or returns default
+func parseIntOrDefault(s string, defaultVal int) int {
+	if s == "" {
+		return defaultVal
+	}
+	if val, err := strconv.Atoi(s); err == nil {
+		return val
+	}
+	return defaultVal
 }

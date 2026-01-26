@@ -340,7 +340,9 @@ func (h *TeacherHandler) EditTest(w http.ResponseWriter, r *http.Request) {
 		"Subjects": subjects,
 	}
 
-	tmpl, err := template.ParseFiles("views/layout.html", "views/edit_test.html")
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}).ParseFiles("views/layout.html", "views/edit_test.html")
 	if err != nil {
 		log.Printf("Error parsing templates: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -364,6 +366,20 @@ func (h *TeacherHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 	testIDStr := r.PathValue("id")
 	testID, _ := strconv.Atoi(testIDStr)
 
+	// Try to parse multipart form first (for file uploads), then fall back to regular form
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32 MB max
+			http.Error(w, fmt.Sprintf("Failed to parse multipart form data: %v", err), http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse form data: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Get existing test
 	test, err := h.testRepo.GetByID(r.Context(), testID)
 	if err != nil {
@@ -385,6 +401,8 @@ func (h *TeacherHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 	test.PassingScore = parseIntOrDefault(r.FormValue("passing_score"), 60)
 	test.TimeLimitMinutes = parseIntOrDefault(r.FormValue("time_limit_minutes"), 10)
 
+	log.Printf("Updating test %d: title=%s, description=%s", testID, test.Title, test.Description)
+
 	// Validate
 	validator := validation.NewTestValidator()
 	if !validator.ValidateTest(test) {
@@ -394,10 +412,50 @@ func (h *TeacherHandler) UpdateTest(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.testRepo.Update(r.Context(), test); err != nil {
 		log.Printf("Error updating test: %v", err)
-		http.Error(w, "Failed to update test", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to update test: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("Test %d updated successfully", testID)
+
+	// Update questions
+	for idx, q := range test.Questions {
+		questionText := r.FormValue(fmt.Sprintf("question_%d_text", idx))
+		pointsStr := r.FormValue(fmt.Sprintf("question_%d_points", idx))
+
+		if questionText != "" {
+			q.QuestionText = questionText
+			q.Points = parseIntOrDefault(pointsStr, 1)
+
+			log.Printf("Updating question %d: text=%s, points=%d", q.ID, q.QuestionText, q.Points)
+
+			if err := h.testRepo.UpdateQuestion(r.Context(), &q); err != nil {
+				log.Printf("Error updating question: %v", err)
+				http.Error(w, fmt.Sprintf("Failed to update question: %v", err), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		// Update answer options and set correct answer
+		correctOptionID := parseIntOrDefault(r.FormValue(fmt.Sprintf("question_%d_correct_option", idx)), 0)
+		for optIdx, opt := range q.Options {
+			optionText := r.FormValue(fmt.Sprintf("question_%d_option_%d_text", idx, optIdx))
+			if optionText != "" {
+				opt.OptionText = optionText
+				opt.IsCorrect = (opt.ID == correctOptionID)
+
+				log.Printf("Updating option %d: text=%s, isCorrect=%v", opt.ID, opt.OptionText, opt.IsCorrect)
+
+				if err := h.testRepo.UpdateAnswerOption(r.Context(), &opt); err != nil {
+					log.Printf("Error updating answer option: %v", err)
+					http.Error(w, fmt.Sprintf("Failed to update answer option: %v", err), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+	}
+
+	log.Printf("Redirecting to /teacher/test/%d/edit", testID)
 	http.Redirect(w, r, fmt.Sprintf("/teacher/test/%d/edit", test.ID), http.StatusSeeOther)
 }
 
@@ -582,16 +640,6 @@ func (h *TeacherHandler) saveUploadedImage(testID int, questionNumber int, file 
 }
 
 // Helper functions
-
-func parseIntOrDefault(value string, defaultVal int) int {
-	if value == "" {
-		return defaultVal
-	}
-	if i, err := strconv.Atoi(value); err == nil {
-		return i
-	}
-	return defaultVal
-}
 
 func isAllowedImageType(ext string) bool {
 	ext = strings.ToLower(ext)

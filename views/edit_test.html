@@ -1,20 +1,9 @@
-{{define "edit_test"}}
+{{define "content"}}
 <div class="container mx-auto py-8 px-4">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">Edit Test: {{.Test.Title}}</h1>
         <div class="space-x-2">
-            {{if not .Test.Published}}
-            <button onclick="publishTest({{.Test.ID}})" 
-                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                Publish Test
-            </button>
-            {{else}}
-            <button onclick="unpublishTest({{.Test.ID}})" 
-                class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
-                Unpublish Test
-            </button>
-            {{end}}
-            <a href="/teacher/test/{{.Test.ID}}/preview" target="_blank"
+            <a href="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher{{end}}/test/{{.Test.ID}}/preview" target="_blank"
                 class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">
                 Preview
             </a>
@@ -25,7 +14,7 @@
         </div>
     </div>
     
-    <form method="POST" action="/teacher/test/{{.Test.ID}}/update" class="bg-white rounded-lg shadow p-6">
+    <form method="POST" action="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher{{end}}/test/{{.Test.ID}}/update" class="bg-white rounded-lg shadow p-6">
         <!-- Test Information -->
         <div class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Test Information</h2>
@@ -87,35 +76,45 @@
         <div class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Questions ({{len .Test.Questions}})</h2>
             
-            {{range .Test.Questions}}
+            {{range $idx, $q := .Test.Questions}}
             <div class="bg-gray-50 rounded-lg p-4 mb-4 border-l-4 border-blue-500">
                 <div class="flex justify-between items-start mb-4">
                     <h3 class="text-lg font-semibold">Question {{.QuestionOrder}}</h3>
+                    <span class="text-sm text-gray-600">ID: {{.ID}}</span>
                 </div>
                 
                 <div class="bg-white p-3 rounded border border-gray-200">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Question Text:</p>
-                    <p class="text-gray-600 mb-3">{{.QuestionText}}</p>
-                    
-                    {{if .ImageURL}}
-                    <div class="mb-3">
-                        <img src="{{.ImageURL}}" alt="Question image" class="max-h-32 rounded">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Question Text:</label>
+                        <textarea name="question_{{$idx}}_text" rows="2"
+                            class="w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">{{.QuestionText}}</textarea>
                     </div>
-                    {{end}}
                     
-                    <p class="text-sm font-medium text-gray-700 mb-2">Answer Options:</p>
-                    <ul class="space-y-2">
-                        {{range .Options}}
-                        <li class="text-gray-600">
-                            {{if .IsCorrect}}
-                            <span class="inline-block w-5 h-5 bg-green-200 rounded-full text-center text-green-700 text-xs">✓</span>
-                            {{else}}
-                            <span class="inline-block w-5 h-5 bg-gray-200 rounded-full"></span>
-                            {{end}}
-                            {{.OptionText}}
-                        </li>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Points:</label>
+                        <input type="number" name="question_{{$idx}}_points" value="{{.Points}}" min="1"
+                            class="w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    </div>
+                    
+                    <p class="text-sm font-medium text-gray-700 mb-3">Answer Options:</p>
+                    <div class="space-y-2">
+                        {{range $optIdx, $opt := .Options}}
+                        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                            <input type="radio" id="q{{$idx}}_opt{{$optIdx}}" 
+                                name="question_{{$idx}}_correct_option" 
+                                value="{{$opt.ID}}"
+                                {{if $opt.IsCorrect}}checked{{end}}
+                                class="w-4 h-4">
+                            <label for="q{{$idx}}_opt{{$optIdx}}" class="text-sm text-gray-600 flex-1">
+                                {{if $opt.IsCorrect}}<span class="text-green-600 font-semibold">✓ (Correct)</span>{{else}}<span></span>{{end}}
+                            </label>
+                            <input type="text" name="question_{{$idx}}_option_{{$optIdx}}_text" 
+                                value="{{$opt.OptionText}}" 
+                                placeholder="Option {{add $optIdx 1}}"
+                                class="flex-1 rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                        </div>
                         {{end}}
-                    </ul>
+                    </div>
                 </div>
             </div>
             {{end}}
@@ -126,7 +125,16 @@
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
                 Save Changes
             </button>
-            <a href="/teacher/dashboard" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded inline-block">
+            {{if not .Test.Published}}
+            <button type="button" onclick="publishTest({{.Test.ID}})" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
+                Publish Test
+            </button>
+            {{else}}
+            <button type="button" onclick="unpublishTest({{.Test.ID}})" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded">
+                Unpublish Test
+            </button>
+            {{end}}
+            <a href="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher/dashboard{{end}}" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded inline-block">
                 Back to Dashboard
             </a>
         </div>
