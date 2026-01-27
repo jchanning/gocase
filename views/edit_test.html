@@ -2,19 +2,37 @@
 <div class="container mx-auto py-8 px-4">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">Edit Test: {{.Test.Title}}</h1>
-        <div class="space-x-2">
+    </div>
+    
+    <!-- Action Buttons - Top of page -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="flex gap-2 flex-wrap">
+            <button type="submit" form="editForm" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+                Save Changes
+            </button>
             <a href="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher{{end}}/test/{{.Test.ID}}/preview" target="_blank"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-block">
+                class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded inline-block">
                 Preview
             </a>
-            <button onclick="deleteTest({{.Test.ID}})" 
-                class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+            {{if not .Test.Published}}
+            <button type="button" onclick="publishTest({{.Test.ID}})" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
+                Publish Test
+            </button>
+            {{else}}
+            <button type="button" onclick="unpublishTest({{.Test.ID}})" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded">
+                Unpublish Test
+            </button>
+            {{end}}
+            <button type="button" onclick="deleteTest({{.Test.ID}})" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded">
                 Delete
             </button>
+            <a href="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher/dashboard{{end}}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded inline-block">
+                Back to Dashboard
+            </a>
         </div>
     </div>
     
-    <form method="POST" action="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher{{end}}/test/{{.Test.ID}}/update" class="bg-white rounded-lg shadow p-6">
+    <form id="editForm" method="POST" action="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher{{end}}/test/{{.Test.ID}}/update" class="bg-white rounded-lg shadow p-6">
         <!-- Test Information -->
         <div class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Test Information</h2>
@@ -120,24 +138,6 @@
             {{end}}
         </div>
         
-        <!-- Form Actions -->
-        <div class="flex gap-4">
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
-                Save Changes
-            </button>
-            {{if not .Test.Published}}
-            <button type="button" onclick="publishTest({{.Test.ID}})" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded">
-                Publish Test
-            </button>
-            {{else}}
-            <button type="button" onclick="unpublishTest({{.Test.ID}})" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded">
-                Unpublish Test
-            </button>
-            {{end}}
-            <a href="{{if eq .Session.Role "admin"}}/admin{{else}}/teacher/dashboard{{end}}" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded inline-block">
-                Back to Dashboard
-            </a>
-        </div>
     </form>
 </div>
 
