@@ -8,7 +8,10 @@
 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-bold text-gray-800">Upload or Create Test</h3>
-        <a href="/admin/wizard" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded">Open Wizard</a>
+        <div class="space-x-2">
+            <a href="/admin/wizard" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded">Open Wizard</a>
+            <a href="/tests" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded">View Tests</a>
+        </div>
     </div>
     
     <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -54,23 +57,66 @@
     <h3 class="text-xl font-bold text-gray-800 mb-4">Existing Tests</h3>
     
     {{if .Tests}}
+    <!-- Filter Section -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <p class="text-sm font-semibold text-gray-700 mb-3">Filter by:</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+                <input type="text" id="filterTitle" placeholder="Search by title..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <select id="filterSubject" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Subjects</option>
+                    {{range .Tests}}{{if .Subject}}<option value="{{.Subject.Name}}">{{.Subject.Name}}</option>{{end}}{{end}}
+                </select>
+            </div>
+            <div>
+                <select id="filterDifficulty" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Difficulties</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
+            <div>
+                <select id="filterStandard" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Standards</option>
+                    {{range .Tests}}<option value="{{.ExamStandard}}">{{.ExamStandard}}</option>{{end}}
+                </select>
+            </div>
+        </div>
+    </div>
+    
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
-                <tr class="border-b">
-                    <th class="text-left py-2 px-4">Title</th>
-                    <th class="text-left py-2 px-4">Subject</th>
-                    <th class="text-left py-2 px-4">Difficulty</th>
-                    <th class="text-left py-2 px-4">Standard</th>
-                    <th class="text-left py-2 px-4">Questions</th>
+                <tr class="border-b bg-gray-50">
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="title">
+                        Title <span class="text-xs text-gray-500">↕</span>
+                    </th>
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="subject">
+                        Subject <span class="text-xs text-gray-500">↕</span>
+                    </th>
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="difficulty">
+                        Difficulty <span class="text-xs text-gray-500">↕</span>
+                    </th>
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="standard">
+                        Standard <span class="text-xs text-gray-500">↕</span>
+                    </th>
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="questions">
+                        Questions <span class="text-xs text-gray-500">↕</span>
+                    </th>
                     <th class="text-left py-2 px-4">Notes</th>
-                    <th class="text-left py-2 px-4">Created</th>
+                    <th class="text-left py-2 px-4 cursor-pointer hover:bg-gray-200 select-none" data-sort="created">
+                        Created <span class="text-xs text-gray-500">↕</span>
+                    </th>
                     <th class="text-left py-2 px-4">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="testsTableBody">
                 {{range .Tests}}
-                <tr class="border-b hover:bg-gray-50">
+                <tr class="border-b hover:bg-gray-50" data-title="{{.Title}}" data-subject="{{if .Subject}}{{.Subject.Name}}{{else}}{{end}}" data-difficulty="{{.Difficulty}}" data-standard="{{.ExamStandard}}" data-questions="{{len .Questions}}" data-created="{{.CreatedAt.Unix}}">
                     <td class="py-3 px-4 font-medium">{{.Title}}</td>
                     <td class="py-3 px-4">{{if .Subject}}{{.Subject.Name}}{{else}}-{{end}}</td>
                     <td class="py-3 px-4">
@@ -109,6 +155,97 @@
 </div>
 
 <script>
+// Filtering and Sorting Logic
+const filterTitle = document.getElementById('filterTitle');
+const filterSubject = document.getElementById('filterSubject');
+const filterDifficulty = document.getElementById('filterDifficulty');
+const filterStandard = document.getElementById('filterStandard');
+const testsTableBody = document.getElementById('testsTableBody');
+const sortHeaders = document.querySelectorAll('[data-sort]');
+
+let currentSort = { field: 'title', ascending: true };
+
+function filterAndSort() {
+    const rows = Array.from(testsTableBody.querySelectorAll('tr'));
+    
+    // Filter rows
+    const filteredRows = rows.filter(row => {
+        const title = row.getAttribute('data-title').toLowerCase();
+        const subject = row.getAttribute('data-subject').toLowerCase();
+        const difficulty = row.getAttribute('data-difficulty');
+        const standard = row.getAttribute('data-standard');
+        
+        const titleMatch = title.includes(filterTitle.value.toLowerCase());
+        const subjectMatch = !filterSubject.value || subject.includes(filterSubject.value.toLowerCase());
+        const difficultyMatch = !filterDifficulty.value || difficulty === filterDifficulty.value;
+        const standardMatch = !filterStandard.value || standard === filterStandard.value;
+        
+        return titleMatch && subjectMatch && difficultyMatch && standardMatch;
+    });
+    
+    // Sort rows
+    filteredRows.sort((a, b) => {
+        let aValue, bValue;
+        const field = currentSort.field;
+        
+        if (field === 'title' || field === 'subject' || field === 'standard') {
+            aValue = a.getAttribute(`data-${field}`).toLowerCase();
+            bValue = b.getAttribute(`data-${field}`).toLowerCase();
+            const comparison = aValue.localeCompare(bValue);
+            return currentSort.ascending ? comparison : -comparison;
+        } else if (field === 'difficulty') {
+            const diffOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+            aValue = diffOrder[a.getAttribute('data-difficulty')] || 0;
+            bValue = diffOrder[b.getAttribute('data-difficulty')] || 0;
+            return currentSort.ascending ? aValue - bValue : bValue - aValue;
+        } else if (field === 'questions' || field === 'created') {
+            aValue = parseInt(a.getAttribute(`data-${field}`)) || 0;
+            bValue = parseInt(b.getAttribute(`data-${field}`)) || 0;
+            return currentSort.ascending ? aValue - bValue : bValue - aValue;
+        }
+        
+        return 0;
+    });
+    
+    // Clear and rebuild table
+    testsTableBody.innerHTML = '';
+    filteredRows.forEach(row => testsTableBody.appendChild(row.cloneNode(true)));
+    
+    // Update header indicators
+    sortHeaders.forEach(header => {
+        const field = header.getAttribute('data-sort');
+        if (field === currentSort.field) {
+            header.classList.add('bg-blue-100');
+            const arrow = currentSort.ascending ? '↑' : '↓';
+            header.innerHTML = header.innerHTML.replace(/[↕↑↓]/, arrow);
+        } else {
+            header.classList.remove('bg-blue-100');
+            header.innerHTML = header.innerHTML.replace(/[↕↑↓]/, '↕');
+        }
+    });
+}
+
+// Event listeners for filters
+filterTitle.addEventListener('input', filterAndSort);
+filterSubject.addEventListener('change', filterAndSort);
+filterDifficulty.addEventListener('change', filterAndSort);
+filterStandard.addEventListener('change', filterAndSort);
+
+// Event listeners for sort headers
+sortHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+        const field = header.getAttribute('data-sort');
+        if (currentSort.field === field) {
+            currentSort.ascending = !currentSort.ascending;
+        } else {
+            currentSort.field = field;
+            currentSort.ascending = true;
+        }
+        filterAndSort();
+    });
+});
+
+// File upload logic
 const fileInput = document.getElementById('testFile');
 const uploadStatus = document.getElementById('uploadStatus');
 
