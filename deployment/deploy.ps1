@@ -93,8 +93,10 @@ Invoke-SSH "mkdir -p $REMOTE_DIR"
 Invoke-SCP $TMP_TAR "${REMOTE_DIR}/gocase.tar.gz"
 Remove-Item $TMP_TAR -Force
 
-# Extract on remote (overwrite existing)
-Invoke-SSH "cd $REMOTE_DIR && tar -xzf gocase.tar.gz && rm gocase.tar.gz"
+# Clean old files (preserve .env.production), fix permissions, then extract
+Invoke-SSH "chmod -R u+rwX $REMOTE_DIR 2>/dev/null || true"
+Invoke-SSH "find $REMOTE_DIR -mindepth 1 -not -name 'gocase.tar.gz' -not -name '.env.production' -delete 2>/dev/null || true"
+Invoke-SSH "cd $REMOTE_DIR && tar -xzf gocase.tar.gz && rm -f gocase.tar.gz"
 
 # Ensure uploads directory exists on server
 Invoke-SSH "mkdir -p $REMOTE_DIR/uploads/notes"
