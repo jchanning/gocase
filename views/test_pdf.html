@@ -151,6 +151,15 @@
         .option.correct .option-letter { color: #15803d; }
         .correct-mark { color: #16a34a; font-weight: 700; margin-left: auto; }
 
+        /* ── Hidden-answers mode (student copy) ─────────── */
+        #page.hide-answers .option.correct {
+            border-color: #e5e7eb;
+            background: white;
+        }
+        #page.hide-answers .option.correct .option-letter {
+            color: #374151;
+        }
+
         /* ── Explanation ─────────────────────────────────── */
         .explanation {
             margin: 10px 0 0 36px;
@@ -234,7 +243,7 @@
 
         <div class="options">
             {{range $j, $opt := $q.Options}}
-            <div class="option{{if $opt.IsCorrect}} correct answer-elem{{end}}">
+            <div class="option{{if $opt.IsCorrect}} correct{{end}}">
                 <span class="option-letter">{{optionLetter $j}}</span>
                 <span>{{$opt.OptionText}}</span>
                 {{if $opt.IsCorrect}}<span class="correct-mark answer-elem">✓</span>{{end}}
@@ -260,6 +269,7 @@ function toggleAnswers() {
         el.style.display = answersVisible ? '' : 'none';
     });
     document.getElementById('answerHint').style.display = answersVisible ? '' : 'none';
+    document.getElementById('page').classList.toggle('hide-answers', !answersVisible);
 }
 </script>
 </body>
