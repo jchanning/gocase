@@ -363,6 +363,18 @@
                 body: JSON.stringify(payload)
             });
 
+            if (!response.ok) {
+                let errMsg = `Server error (HTTP ${response.status}). Please refresh the page and try again.`;
+                try {
+                    const errData = await response.json();
+                    if (errData.error) errMsg = errData.error;
+                } catch {}
+                saveStatus.className = 'mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700';
+                saveStatus.textContent = '\u274C ' + errMsg;
+                saveStatus.classList.remove('hidden');
+                return;
+            }
+
             const result = await response.json();
 
             if (result.success) {

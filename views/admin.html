@@ -277,7 +277,17 @@ fileInput?.addEventListener('change', async function(e) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(testData)
         });
-        
+
+        if (!response.ok) {
+            let errMsg = `Server error (HTTP ${response.status}). Please refresh the page and try again.`;
+            try {
+                const errData = await response.json();
+                if (errData.error) errMsg = errData.error;
+            } catch {}
+            uploadStatus.innerHTML = `<p class="text-red-600 font-semibold">&#10060; ${errMsg}</p>`;
+            return;
+        }
+
         const result = await response.json();
         
         if (result.success) {

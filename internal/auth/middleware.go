@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type contextKey string
@@ -19,18 +21,37 @@ func NewMiddleware(store *SessionStore) *Middleware {
 	return &Middleware{store: store}
 }
 
+// isJSONRequest returns true when the request carries a JSON body (i.e. an AJAX fetch).
+func isJSONRequest(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Content-Type"), "application/json") ||
+		strings.Contains(r.Header.Get("Accept"), "application/json")
+}
+
+// respondUnauthorized sends a JSON 401 for AJAX requests or redirects for normal browser requests.
+func respondUnauthorized(w http.ResponseWriter, r *http.Request) {
+	if isJSONRequest(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
+			"error": "Session expired. Please log in again.",
+		})
+		return
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
 // RequireAuth is middleware that requires authentication
 func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := GetSessionToken(r)
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			respondUnauthorized(w, r)
 			return
 		}
 
 		session, exists := m.store.Get(token)
 		if !exists {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			respondUnauthorized(w, r)
 			return
 		}
 
@@ -46,7 +67,7 @@ func (m *Middleware) RequireRole(roles ...string) func(http.Handler) http.Handle
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session := GetSessionData(r)
 			if session == nil {
-				http.Redirect(w, r, "/login", http.StatusSeeOther)
+				respondUnauthorized(w, r)
 				return
 			}
 
