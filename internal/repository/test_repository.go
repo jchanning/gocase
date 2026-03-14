@@ -4,17 +4,15 @@ import (
 	"context"
 
 	"github.com/jchanning/gocase/internal/models"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // TestRepository handles test database operations
 type TestRepository struct {
-	pool *pgxpool.Pool
+	pool dbQuerier
 }
 
 // NewTestRepository creates a new test repository
-func NewTestRepository(pool *pgxpool.Pool) *TestRepository {
+func NewTestRepository(pool dbQuerier) *TestRepository {
 	return &TestRepository{pool: pool}
 }
 

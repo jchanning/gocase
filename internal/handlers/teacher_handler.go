@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -15,26 +16,62 @@ import (
 
 	"github.com/jchanning/gocase/internal/auth"
 	"github.com/jchanning/gocase/internal/models"
-	"github.com/jchanning/gocase/internal/repository"
 	"github.com/jchanning/gocase/internal/validation"
 )
 
+type teacherTestStore interface {
+	testUploadStore
+	GetByCreator(ctx context.Context, userID int) ([]models.Test, error)
+	GetSubjects(ctx context.Context) ([]models.Subject, error)
+	GetByID(ctx context.Context, id int) (*models.Test, error)
+	Update(ctx context.Context, test *models.Test) error
+	UpdateQuestion(ctx context.Context, question *models.Question) error
+	UpdateAnswerOption(ctx context.Context, option *models.AnswerOption) error
+	PublishTest(ctx context.Context, testID int) error
+	UnpublishTest(ctx context.Context, testID int) error
+	DeleteTest(ctx context.Context, testID int) error
+}
+
+type teacherUserStore interface {
+	GetUsersByRole(ctx context.Context, role string) ([]models.User, error)
+}
+
+type teacherAttemptStore interface {
+	GetByTestID(ctx context.Context, testID int) ([]models.TestAttempt, error)
+}
+
+type teacherAssignmentStore interface {
+	GetByTeacher(ctx context.Context, teacherID int) ([]models.TestAssignment, error)
+	Create(ctx context.Context, a *models.TestAssignment) error
+}
+
 // TeacherHandler handles teacher requests
 type TeacherHandler struct {
-	testRepo       *repository.TestRepository
-	userRepo       *repository.UserRepository
-	attemptRepo    *repository.AttemptRepository
-	assignmentRepo *repository.AssignmentRepository
+	testRepo       teacherTestStore
+	userRepo       teacherUserStore
+	attemptRepo    teacherAttemptStore
+	assignmentRepo teacherAssignmentStore
 }
 
 // NewTeacherHandler creates a new teacher handler
-func NewTeacherHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository, attemptRepo *repository.AttemptRepository, assignmentRepo *repository.AssignmentRepository) *TeacherHandler {
+func NewTeacherHandler(testRepo teacherTestStore, userRepo teacherUserStore, attemptRepo teacherAttemptStore, assignmentRepo teacherAssignmentStore) *TeacherHandler {
 	return &TeacherHandler{
 		testRepo:       testRepo,
 		userRepo:       userRepo,
 		attemptRepo:    attemptRepo,
 		assignmentRepo: assignmentRepo,
 	}
+}
+
+func (h *TeacherHandler) ownsTest(ctx context.Context, session *auth.SessionData, testID int) (*models.Test, bool, error) {
+	test, err := h.testRepo.GetByID(ctx, testID)
+	if err != nil {
+		return nil, false, err
+	}
+	if test.CreatedBy == nil || *test.CreatedBy != session.UserID {
+		return test, false, nil
+	}
+	return test, true, nil
 }
 
 // ShowDashboard displays the teacher dashboard
@@ -509,14 +546,12 @@ func (h *TeacherHandler) PublishTest(w http.ResponseWriter, r *http.Request) {
 	testIDStr := r.PathValue("id")
 	testID, _ := strconv.Atoi(testIDStr)
 
-	// Get test to verify ownership
-	test, err := h.testRepo.GetByID(r.Context(), testID)
+	_, allowed, err := h.ownsTest(r.Context(), session, testID)
 	if err != nil {
 		http.Error(w, "Test not found", http.StatusNotFound)
 		return
 	}
-
-	if test.CreatedBy == nil || *test.CreatedBy != session.UserID {
+	if !allowed {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -545,14 +580,12 @@ func (h *TeacherHandler) UnpublishTest(w http.ResponseWriter, r *http.Request) {
 	testIDStr := r.PathValue("id")
 	testID, _ := strconv.Atoi(testIDStr)
 
-	// Get test to verify ownership
-	test, err := h.testRepo.GetByID(r.Context(), testID)
+	_, allowed, err := h.ownsTest(r.Context(), session, testID)
 	if err != nil {
 		http.Error(w, "Test not found", http.StatusNotFound)
 		return
 	}
-
-	if test.CreatedBy == nil || *test.CreatedBy != session.UserID {
+	if !allowed {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -581,14 +614,12 @@ func (h *TeacherHandler) DeleteTest(w http.ResponseWriter, r *http.Request) {
 	testIDStr := r.PathValue("id")
 	testID, _ := strconv.Atoi(testIDStr)
 
-	// Get test to verify ownership
-	test, err := h.testRepo.GetByID(r.Context(), testID)
+	_, allowed, err := h.ownsTest(r.Context(), session, testID)
 	if err != nil {
 		http.Error(w, "Test not found", http.StatusNotFound)
 		return
 	}
-
-	if test.CreatedBy == nil || *test.CreatedBy != session.UserID {
+	if !allowed {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}

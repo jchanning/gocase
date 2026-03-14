@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/jchanning/gocase/internal/auth"
 	"github.com/jchanning/gocase/internal/models"
 )
 
@@ -29,14 +30,14 @@ func TestFilterTests_AppliesAllFilters(t *testing.T) {
 	}
 }
 
-func TestFilterTests_PublishedDefaultsToTrue(t *testing.T) {
+func TestFilterTests_StudentDefaultsToPublishedOnly(t *testing.T) {
 	tests := []models.Test{
 		{ID: 1, Title: "Published", Published: true},
 		{ID: 2, Title: "Draft", Published: false},
 	}
 
 	req := httptest.NewRequest("GET", "/tests", nil)
-	filters := parseTestFilters(req)
+	filters := parseTestFilters(req, &auth.SessionData{Role: "student"})
 
 	filtered := filterTests(tests, filters)
 	if len(filtered) != 1 {
@@ -47,12 +48,50 @@ func TestFilterTests_PublishedDefaultsToTrue(t *testing.T) {
 	}
 }
 
+func TestFilterTests_TeacherDefaultsToAllTests(t *testing.T) {
+	tests := []models.Test{
+		{ID: 1, Title: "Published", Published: true},
+		{ID: 2, Title: "Draft", Published: false},
+	}
+
+	req := httptest.NewRequest("GET", "/tests", nil)
+	filters := parseTestFilters(req, &auth.SessionData{Role: "teacher"})
+
+	if filters.Published != nil {
+		t.Fatalf("expected no default published filter for teacher role")
+	}
+
+	filtered := filterTests(tests, filters)
+	if len(filtered) != 2 {
+		t.Fatalf("expected teachers to see all tests by default, got %d", len(filtered))
+	}
+}
+
+func TestFilterTests_AdminDefaultsToAllTests(t *testing.T) {
+	tests := []models.Test{
+		{ID: 1, Title: "Published", Published: true},
+		{ID: 2, Title: "Draft", Published: false},
+	}
+
+	req := httptest.NewRequest("GET", "/tests", nil)
+	filters := parseTestFilters(req, &auth.SessionData{Role: "admin"})
+
+	if filters.Published != nil {
+		t.Fatalf("expected no default published filter for admin role")
+	}
+
+	filtered := filterTests(tests, filters)
+	if len(filtered) != 2 {
+		t.Fatalf("expected admins to see all tests by default, got %d", len(filtered))
+	}
+}
+
 func TestParseTestFilters_AllowsExplicitUnpublished(t *testing.T) {
 	form := url.Values{}
 	form.Set("published", "false")
 	req := httptest.NewRequest("GET", "/tests?"+form.Encode(), nil)
 
-	filters := parseTestFilters(req)
+	filters := parseTestFilters(req, &auth.SessionData{Role: "student"})
 	if filters.Published == nil || *filters.Published {
 		t.Fatalf("expected published filter to be false when explicitly requested")
 	}

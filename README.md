@@ -35,7 +35,7 @@ A comprehensive multiple-choice question test platform for students preparing fo
 - 👥 **User Management** - Manage student, teacher, and admin accounts
 
 ### Test Features
-- **Standards**: Primary, GCSE, A-Level
+- **Standards**: Primary, Secondary, GCSE, IGCSE, A-Level
 - **Subjects**: Mathematics, Science, History, English, Geography (extensible)
 - **Difficulty Levels**: Easy (immediate feedback), Medium (immediate feedback), Hard (end-of-test feedback)
 - **Question Types**: Text-based with optional images
@@ -44,7 +44,7 @@ A comprehensive multiple-choice question test platform for students preparing fo
 
 ## Tech Stack
 
-- **Backend**: Go 1.22+
+- **Backend**: Go 1.25
 - **Router**: Chi v5
 - **Database**: PostgreSQL with pgx/v5 driver
 - **Frontend**: HTMX + TailwindCSS

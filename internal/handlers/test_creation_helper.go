@@ -5,9 +5,17 @@ import (
 	"fmt"
 
 	"github.com/jchanning/gocase/internal/models"
-	"github.com/jchanning/gocase/internal/repository"
 	"github.com/jchanning/gocase/internal/validation"
 )
+
+type testUploadStore interface {
+	GetOrCreateSubject(ctx context.Context, name, description string) (int, error)
+	GetOrCreateTopic(ctx context.Context, subjectID int, name, description string) (int, error)
+	Create(ctx context.Context, test *models.Test) error
+	UpdateTestNotes(ctx context.Context, testID int, notesFilename *string) error
+	CreateQuestion(ctx context.Context, question *models.Question) error
+	CreateAnswerOption(ctx context.Context, option *models.AnswerOption) error
+}
 
 // validateTestUpload runs server-side validation for incoming test data before DB writes.
 func validateTestUpload(upload models.TestUpload) map[string]string {
@@ -67,7 +75,7 @@ func validateTestUpload(upload models.TestUpload) map[string]string {
 }
 
 // persistTestUpload stores the validated test definition and returns the created test.
-func persistTestUpload(ctx context.Context, repo *repository.TestRepository, upload models.TestUpload, createdBy int) (*models.Test, error) {
+func persistTestUpload(ctx context.Context, repo testUploadStore, upload models.TestUpload, createdBy int) (*models.Test, error) {
 	subjectID, err := repo.GetOrCreateSubject(ctx, upload.Subject, "")
 	if err != nil {
 		return nil, err

@@ -4,17 +4,15 @@ import (
 	"context"
 
 	"github.com/jchanning/gocase/internal/models"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // AssignmentRepository handles test assignment database operations.
 type AssignmentRepository struct {
-	pool *pgxpool.Pool
+	pool dbQuerier
 }
 
 // NewAssignmentRepository creates a new AssignmentRepository.
-func NewAssignmentRepository(pool *pgxpool.Pool) *AssignmentRepository {
+func NewAssignmentRepository(pool dbQuerier) *AssignmentRepository {
 	return &AssignmentRepository{pool: pool}
 }
 

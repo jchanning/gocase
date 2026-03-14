@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -14,21 +15,41 @@ import (
 	"github.com/jchanning/gocase/internal/docparse"
 	"github.com/jchanning/gocase/internal/llm"
 	"github.com/jchanning/gocase/internal/models"
-	"github.com/jchanning/gocase/internal/repository"
 	"github.com/jchanning/gocase/internal/storage"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
+type adminTestStore interface {
+	testUploadStore
+	GetAll(ctx context.Context) ([]models.Test, error)
+	GetSubjects(ctx context.Context) ([]models.Subject, error)
+	GetByID(ctx context.Context, id int) (*models.Test, error)
+	DeleteTest(ctx context.Context, testID int) error
+	Update(ctx context.Context, test *models.Test) error
+	UpdateQuestion(ctx context.Context, question *models.Question) error
+	UpdateAnswerOption(ctx context.Context, option *models.AnswerOption) error
+	UpdateTestNotes(ctx context.Context, testID int, notesFilename *string) error
+}
+
+type adminUserStore interface {
+	GetAllUsers(ctx context.Context) ([]models.User, error)
+	Create(ctx context.Context, user *models.User) error
+	InitializeUserStats(ctx context.Context, userID int) error
+	UpdateUserRole(ctx context.Context, userID int, role string) error
+	UpdatePasswordHash(ctx context.Context, userID int, newHash string) error
+	DeleteUser(ctx context.Context, userID int) error
+}
+
 // AdminHandler handles admin/teacher requests
 type AdminHandler struct {
-	testRepo  *repository.TestRepository
-	userRepo  *repository.UserRepository
+	testRepo  adminTestStore
+	userRepo  adminUserStore
 	llmClient llm.QuestionGenerator
 }
 
 // NewAdminHandler creates a new admin handler
-func NewAdminHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository, llmClient llm.QuestionGenerator) *AdminHandler {
+func NewAdminHandler(testRepo adminTestStore, userRepo adminUserStore, llmClient llm.QuestionGenerator) *AdminHandler {
 	return &AdminHandler{
 		testRepo:  testRepo,
 		userRepo:  userRepo,

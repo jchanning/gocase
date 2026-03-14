@@ -77,16 +77,18 @@
 
 | ID | Area | Description | Severity |
 |----|------|-------------|----------|
-| TD-01 | Module | Go module was named `my-app` — fixed to `github.com/jchanning/gocase` | ~~Medium~~ DONE |
+| TD-01 | Module | Go module rename completed: `github.com/jchanning/gocase` | DONE |
 | TD-02 | Sessions | In-memory session store lost on container restart | Low (acceptable for v0.x) |
 | TD-03 | Tests | No repository layer tests (all DB queries untested) | High |
 | TD-04 | Tests | No handler tests for dashboard, teacher, or admin handlers | Medium |
-| TD-05 | CI/CD | No GitHub Actions CI pipeline (tests not auto-run on push) | Medium |
-| TD-06 | Fitness | No architectural fitness function tests | Medium |
-| TD-07 | Email | No password reset via email (admin must reset manually) | Low |
-| TD-08 | Scale | Single-instance deployment; no horizontal scaling | Low (v0.x) |
-| TD-09 | Sessions | No session refresh on activity (24h hard expiry) | Low |
-| TD-10 | PPTX | PPTX text extraction is limited; complex layouts may miss content | Low |
+| TD-05 | Fitness | No architectural fitness function tests | Medium |
+| TD-06 | Docs | Core AaC docs created: `BLUEPRINT.md`, `MASTER_PLAN.md`, `NON_GOALS.md`, `DOMAIN_SPEC.md` | DONE |
+| TD-07 | Specs | `spec/*.agent.md` files are prompts; contract-style specs still need backfilling | Medium |
+| TD-08 | Email | No password reset via email (admin must reset manually) | Low |
+| TD-09 | Scale | Single-instance deployment; no horizontal scaling | Low (v0.x) |
+| TD-10 | Sessions | No session refresh on activity (24h hard expiry) | Low |
+| TD-11 | PPTX | PPTX text extraction is limited; complex layouts may miss content | Low |
+| TD-12 | Docs | Root docs drift was corrected; keep future docs synchronized in the same change set | DONE |
 
 ---
 
@@ -94,15 +96,9 @@
 
 Priority order based on current state:
 
-1. **[High]** Create GitHub Actions CI pipeline (`.github/workflows/ci.yml`)
-   — Run `go test ./...` and `go vet ./...` on every push and PR
-2. **[High]** Fix module name: rename `my-app` → `github.com/jchanning/gocase`
-3. **[Medium]** Add repository layer tests using interface-based mocks
-4. **[Medium]** Add handler integration tests for dashboard and teacher flows
-5. **[Medium]** Create `docs/DOMAIN_SPEC.md` with invariants and state machines
-6. **[Medium]** Create `docs/NON_GOALS.md` with explicit scope exclusions
-7. **[Low]** Add architectural fitness function tests (`internal/fitness/`)
-8. **[Low]** Consolidate `IMPLEMENTATION.md`, `IMPLEMENTATION_COMPLETE.md`, `FEATURES_IMPLEMENTED.md` into this file
+1. **[High]** Deploy the accumulated fixes and playbook-alignment work to Oracle Cloud
+2. **[Medium]** Expand architectural fitness tests beyond the initial guardrails
+3. **[Low]** Consolidate `IMPLEMENTATION.md`, `IMPLEMENTATION_COMPLETE.md`, `FEATURES_IMPLEMENTED.md` into this file
 
 ---
 
@@ -126,3 +122,105 @@ Priority order based on current state:
 - `views/dashboard.html` — pending assignment cards with overdue status
 - `deployment/deploy.ps1` — BUILD_VERSION from git tag
 - `deployment/docker-compose.prod.yml` — BUILD_VERSION arg
+
+### 2026-03-14 — Playbook Phase 1 Follow-up
+**Work done:**
+- Refreshed stale playbook review findings to match the real repo state
+- Implemented the missing AaC document layer for Blueprint, Master Plan, Non-Goals, and Domain Spec
+- Corrected root documentation drift and backlog priorities
+- Added a reusable contract-style feature spec template
+
+**Files changed (key):**
+- `docs/PLAYBOOK_REVIEW.md` — replaced outdated findings with current-state review
+- `docs/IMPLEMENTATION_STATUS.md` — updated backlog and next steps
+- `docs/BLUEPRINT.md` — new
+- `docs/MASTER_PLAN.md` — new
+- `docs/NON_GOALS.md` — new
+- `docs/DOMAIN_SPEC.md` — new
+- `spec/FEATURE_SPEC_TEMPLATE.md` — new
+- `README.md` — version and standards cleanup
+- `CHANGELOG.md` — stale import path cleanup
+- `.env.example` — clarified local vs production env usage
+
+### 2026-03-14 — Tests Page Visibility Fix
+**Work done:**
+- Fixed `/tests` so students still default to published-only tests, while teachers and admins now see all created tests by default
+- Added handler tests covering student, teacher, and admin default filter behavior
+
+**Files changed (key):**
+- `internal/handlers/test_handler.go` — role-aware default for published filter
+- `internal/handlers/test_handler_filters_test.go` — added role-specific default filter coverage
+
+### 2026-03-14 — Playbook Phase 2 Follow-up
+**Work done:**
+- Backfilled contract-style specs for authentication, test lifecycle, and assignment lifecycle
+- Added the first `internal/fitness` architecture tests for handler-layer boundaries, protected route structure, and required docs
+
+**Files changed (key):**
+- `spec/authentication.spec.md` — new
+- `spec/test-lifecycle.spec.md` — new
+- `spec/assignment-lifecycle.spec.md` — new
+- `internal/fitness/architecture_test.go` — new
+
+### 2026-03-14 — Playbook Phase 3 Follow-up
+**Work done:**
+- Replaced concrete repository dependencies in `AuthHandler` and `DashboardHandler` with narrow interfaces
+- Removed the unused `testRepo` dependency from `DashboardHandler`
+- Added unit tests for auth success/error flows and dashboard data loading behavior
+- Extended fitness tests so `auth_handler.go` and `dashboard_handler.go` cannot regress back to concrete repository types
+
+**Files changed (key):**
+- `internal/handlers/auth_handler.go` — interface boundary + register error fix
+- `internal/handlers/dashboard_handler.go` — interface boundary + extracted dashboard data loader
+- `internal/handlers/auth_handler_test.go` — expanded auth coverage
+- `internal/handlers/dashboard_handler_test.go` — new
+- `internal/fitness/architecture_test.go` — stronger boundary guard
+- `internal/server/server.go` — constructor wiring updated
+
+### 2026-03-14 — Playbook Phase 4 Follow-up
+**Work done:**
+- Replaced concrete repository dependencies in `TestHandler` with narrow interfaces
+- Extracted submission, recommendation, and history-filter helper logic into directly testable units
+- Added unit tests for history scoping, score calculation, stats updates, and recommendation gating
+- Extended the fitness tests so `test_handler.go` cannot regress back to concrete repository types
+
+**Files changed (key):**
+- `internal/handlers/test_handler.go` — interface boundary + extracted helper logic
+- `internal/handlers/test_handler_unit_test.go` — new
+- `internal/fitness/architecture_test.go` — stronger boundary guard
+
+### 2026-03-14 — Playbook Phase 5 Follow-up
+**Work done:**
+- Added `pgxmock`-backed repository tests for recommendation and assignment behavior
+- Introduced a minimal repository DB interface so repositories can be unit tested without a live PostgreSQL instance
+
+**Files changed (key):**
+- `internal/repository/db.go` — new shared DB query interface
+- `internal/repository/test_repository.go` — now depends on the minimal DB interface
+- `internal/repository/assignment_repository.go` — now depends on the minimal DB interface
+- `internal/repository/test_repository_test.go` — new
+- `internal/repository/assignment_repository_test.go` — new
+
+### 2026-03-14 — Playbook Phase 6 Follow-up
+**Work done:**
+- Replaced concrete repository dependencies in `TeacherHandler` and `AdminHandler` with narrow interfaces
+- Refactored the shared test-upload helper to use an interface instead of a concrete repository
+- Added staff-flow tests for publish/unpublish ownership, assignment validation/creation, subject creation, user creation, and role updates
+- Extended fitness tests so `teacher_handler.go` and `admin_handler.go` cannot regress back to concrete repository types
+
+**Files changed (key):**
+- `internal/handlers/test_creation_helper.go` — interface-based upload persistence
+- `internal/handlers/teacher_handler.go` — interface boundary + small ownership helper
+- `internal/handlers/admin_handler.go` — interface boundary
+- `internal/handlers/staff_handler_test.go` — new
+- `internal/fitness/architecture_test.go` — stronger boundary guard
+
+### 2026-03-14 — Playbook Phase 7 Follow-up
+**Work done:**
+- Added test-taking lifecycle handler coverage for start, answer submission, and test submission side effects
+- Added admin document-generation handler coverage for unavailable/missing/invalid-upload paths
+- Added admin notes-management handler coverage for remove and serve flows
+
+**Files changed (key):**
+- `internal/handlers/test_handler_flow_test.go` — new
+- `internal/handlers/admin_handler_flow_test.go` — new

@@ -1,23 +1,29 @@
 package handlers
 
 import (
+	"context"
 	"html/template"
 	"log"
 	"net/http"
 
 	"github.com/jchanning/gocase/internal/auth"
 	"github.com/jchanning/gocase/internal/models"
-	"github.com/jchanning/gocase/internal/repository"
 )
+
+type authUserStore interface {
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	Create(ctx context.Context, user *models.User) error
+	InitializeUserStats(ctx context.Context, userID int) error
+}
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
-	userRepo     *repository.UserRepository
+	userRepo     authUserStore
 	sessionStore *auth.SessionStore
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(userRepo *repository.UserRepository, sessionStore *auth.SessionStore) *AuthHandler {
+func NewAuthHandler(userRepo authUserStore, sessionStore *auth.SessionStore) *AuthHandler {
 	return &AuthHandler{
 		userRepo:     userRepo,
 		sessionStore: sessionStore,
@@ -130,7 +136,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Validate role
 	if role != "student" && role != "teacher" && role != "admin" {
-		h.showRegisterError(w, "Invalid role specified")
+		h.showRegisterError(w, r, "Invalid role specified")
 		return
 	}
 
@@ -162,7 +168,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.userRepo.Create(r.Context(), user); err != nil {
 		log.Printf("Error creating user: %v", err)
-		h.showRegisterError(w, "Email already exists or invalid data")
+		h.showRegisterError(w, r, "Email already exists or invalid data")
 		return
 	}
 
@@ -208,9 +214,9 @@ func (h *AuthHandler) showLoginError(w http.ResponseWriter, errorMsg string) {
 }
 
 // showRegisterError displays register page with error
-func (h *AuthHandler) showRegisterError(w http.ResponseWriter, errorMsg string) {
+func (h *AuthHandler) showRegisterError(w http.ResponseWriter, r *http.Request, errorMsg string) {
 	tmpl, _ := template.ParseFiles("views/layout.html", "views/register.html")
-	sessionData := auth.GetSessionData(nil)
+	sessionData := auth.GetSessionData(r)
 	isAdmin := sessionData != nil && sessionData.Role == "admin"
 	data := map[string]interface{}{
 		"Session": sessionData,

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
 	"log"
@@ -14,12 +15,39 @@ import (
 	"github.com/jchanning/gocase/internal/repository"
 )
 
+type testCatalogStore interface {
+	GetAll(ctx context.Context) ([]models.Test, error)
+	GetSubjects(ctx context.Context) ([]models.Subject, error)
+	GetByID(ctx context.Context, id int) (*models.Test, error)
+	GetRecommendation(ctx context.Context, subjectID int, difficulty string, excludeTestID, userID int) (*models.Test, error)
+}
+
+type testAttemptStore interface {
+	SearchAttempts(ctx context.Context, filter repository.AttemptSearchFilter) ([]models.TestAttempt, error)
+	Create(ctx context.Context, attempt *models.TestAttempt) error
+	GetByID(ctx context.Context, id int) (*models.TestAttempt, error)
+	GetAnswersByAttemptID(ctx context.Context, attemptID int) ([]models.StudentAnswer, error)
+	SaveAnswer(ctx context.Context, answer *models.StudentAnswer) error
+	Complete(ctx context.Context, attemptID, score, totalPoints int) error
+	GetUserStreakStats(ctx context.Context, userID int) (repository.StreakStats, error)
+}
+
+type testUserStatsStore interface {
+	GetUserStats(ctx context.Context, userID int) (*models.UserStats, error)
+	InitializeUserStats(ctx context.Context, userID int) error
+	UpdateUserStats(ctx context.Context, stats *models.UserStats) error
+}
+
+type testAssignmentStore interface {
+	MarkCompleted(ctx context.Context, studentID, testID int) error
+}
+
 // TestHandler handles test-related requests
 type TestHandler struct {
-	testRepo       *repository.TestRepository
-	attemptRepo    *repository.AttemptRepository
-	userRepo       *repository.UserRepository
-	assignmentRepo *repository.AssignmentRepository
+	testRepo       testCatalogStore
+	attemptRepo    testAttemptStore
+	userRepo       testUserStatsStore
+	assignmentRepo testAssignmentStore
 }
 
 // testFilters captures query parameters for filtering available tests.
@@ -43,7 +71,7 @@ type historyFilters struct {
 }
 
 // NewTestHandler creates a new test handler
-func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository, userRepo *repository.UserRepository, assignmentRepo *repository.AssignmentRepository) *TestHandler {
+func NewTestHandler(testRepo testCatalogStore, attemptRepo testAttemptStore, userRepo testUserStatsStore, assignmentRepo testAssignmentStore) *TestHandler {
 	return &TestHandler{
 		testRepo:       testRepo,
 		attemptRepo:    attemptRepo,
@@ -55,7 +83,7 @@ func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository
 // ListTests displays all available tests
 func (h *TestHandler) ListTests(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSessionData(r)
-	filters := parseTestFilters(r)
+	filters := parseTestFilters(r, session)
 
 	tests, err := h.testRepo.GetAll(r.Context())
 	if err != nil {
@@ -109,11 +137,7 @@ func (h *TestHandler) ListTests(w http.ResponseWriter, r *http.Request) {
 func (h *TestHandler) History(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSessionData(r)
 
-	filters := parseHistoryFilters(r)
-	if session.Role == "student" {
-		filters.UserID = &session.UserID
-	}
-	filters.AttemptSearchFilter.UserID = filters.UserID
+	filters := buildHistoryFilters(r, session)
 
 	attempts, err := h.attemptRepo.SearchAttempts(r.Context(), filters.AttemptSearchFilter)
 	if err != nil {
@@ -147,8 +171,18 @@ func (h *TestHandler) History(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func buildHistoryFilters(r *http.Request, session *auth.SessionData) historyFilters {
+	filters := parseHistoryFilters(r)
+	if session != nil && session.Role == "student" {
+		filters.UserID = &session.UserID
+	}
+	filters.AttemptSearchFilter.UserID = filters.UserID
+	return filters
+}
+
 // parseTestFilters extracts filter values from the request query string.
-func parseTestFilters(r *http.Request) testFilters {
+// Students default to published-only tests, while teachers/admins default to all tests.
+func parseTestFilters(r *http.Request, session *auth.SessionData) testFilters {
 	query := r.URL.Query()
 	filters := testFilters{}
 
@@ -176,8 +210,8 @@ func parseTestFilters(r *http.Request) testFilters {
 			v := false
 			filters.Published = &v
 		}
-	} else {
-		// Default to showing only published tests when no filter is specified.
+	} else if session != nil && session.Role == "student" {
+		// Students should only see published tests by default.
 		v := true
 		filters.Published = &v
 	}
@@ -241,6 +275,70 @@ func nextDifficultyLevel(current string) string {
 	default:
 		return ""
 	}
+}
+
+func calculateAttemptScore(test *models.Test, answers []models.StudentAnswer) (score int, totalPoints int) {
+	for _, question := range test.Questions {
+		totalPoints += question.Points
+		for _, answer := range answers {
+			if answer.QuestionID == question.ID && answer.IsCorrect != nil && *answer.IsCorrect {
+				score += question.Points
+			}
+		}
+	}
+
+	return score, totalPoints
+}
+
+func percentageScore(score, totalPoints int) float64 {
+	if totalPoints <= 0 {
+		return 0
+	}
+	return (float64(score) / float64(totalPoints)) * 100
+}
+
+func (h *TestHandler) updateUserStatsAfterSubmission(ctx context.Context, session *auth.SessionData, test *models.Test, score, totalPoints int) {
+	stats, err := h.userRepo.GetUserStats(ctx, session.UserID)
+	if err != nil {
+		h.userRepo.InitializeUserStats(ctx, session.UserID)
+		stats, _ = h.userRepo.GetUserStats(ctx, session.UserID)
+	}
+	if stats == nil {
+		stats = &models.UserStats{UserID: session.UserID}
+	}
+
+	stats.TestsCompleted++
+	stats.TotalPoints += score
+	if percentageScore(score, totalPoints) >= float64(test.PassingScore) {
+		stats.TestsPassed++
+	}
+
+	if streaks, err := h.attemptRepo.GetUserStreakStats(ctx, session.UserID); err == nil {
+		stats.CurrentStreak = streaks.Current
+		stats.BestStreak = streaks.Best
+	} else {
+		log.Printf("Error calculating streaks: %v", err)
+	}
+
+	h.userRepo.UpdateUserStats(ctx, stats)
+}
+
+func (h *TestHandler) buildRecommendation(ctx context.Context, session *auth.SessionData, test *models.Test, passed bool) *models.Test {
+	if !passed || test == nil || test.SubjectID == nil {
+		return nil
+	}
+
+	nextDiff := nextDifficultyLevel(test.Difficulty)
+	if nextDiff == "" {
+		return nil
+	}
+
+	recommendation, err := h.testRepo.GetRecommendation(ctx, *test.SubjectID, nextDiff, test.ID, session.UserID)
+	if err != nil {
+		return nil
+	}
+
+	return recommendation
 }
 
 // filterTests applies the parsed filters to the in-memory list of tests.
@@ -500,19 +598,8 @@ func (h *TestHandler) SubmitTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate score
-	score := 0
-	totalPoints := 0
 	test, _ := h.testRepo.GetByID(r.Context(), attempt.TestID)
-
-	for _, q := range test.Questions {
-		totalPoints += q.Points
-		for _, answer := range answers {
-			if answer.QuestionID == q.ID && answer.IsCorrect != nil && *answer.IsCorrect {
-				score += q.Points
-			}
-		}
-	}
+	score, totalPoints := calculateAttemptScore(test, answers)
 
 	// Complete the attempt
 	if err := h.attemptRepo.Complete(r.Context(), attemptID, score, totalPoints); err != nil {
@@ -521,30 +608,7 @@ func (h *TestHandler) SubmitTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update user stats
-	stats, err := h.userRepo.GetUserStats(r.Context(), session.UserID)
-	if err != nil {
-		// Initialize if doesn't exist
-		h.userRepo.InitializeUserStats(r.Context(), session.UserID)
-		stats, _ = h.userRepo.GetUserStats(r.Context(), session.UserID)
-	}
-
-	stats.TestsCompleted++
-	stats.TotalPoints += score
-	percentageScore := (float64(score) / float64(totalPoints)) * 100
-	if percentageScore >= float64(test.PassingScore) {
-		stats.TestsPassed++
-	}
-
-	// Recalculate streaks based on completed attempts
-	if streaks, err := h.attemptRepo.GetUserStreakStats(r.Context(), session.UserID); err == nil {
-		stats.CurrentStreak = streaks.Current
-		stats.BestStreak = streaks.Best
-	} else {
-		log.Printf("Error calculating streaks: %v", err)
-	}
-
-	h.userRepo.UpdateUserStats(r.Context(), stats)
+	h.updateUserStatsAfterSubmission(r.Context(), session, test, score, totalPoints)
 
 	// Mark the assignment completed if one exists for this test.
 	if h.assignmentRepo != nil {
@@ -618,16 +682,7 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 
 	passed := percentage >= float64(test.PassingScore)
 
-	// Find a recommended next test when the student passed.
-	var recommendation *models.Test
-	if passed && test.SubjectID != nil {
-		if nextDiff := nextDifficultyLevel(test.Difficulty); nextDiff != "" {
-			rec, err := h.testRepo.GetRecommendation(r.Context(), *test.SubjectID, nextDiff, test.ID, session.UserID)
-			if err == nil {
-				recommendation = rec
-			}
-		}
-	}
+	recommendation := h.buildRecommendation(r.Context(), session, test, passed)
 
 	data := map[string]interface{}{
 		"Session":         session,

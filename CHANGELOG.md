@@ -119,7 +119,7 @@ import (
     "path/filepath"
     "strconv"
     "strings"
-    "my-app/internal/validation"
+   "github.com/jchanning/gocase/internal/validation"
 )
 ```
 

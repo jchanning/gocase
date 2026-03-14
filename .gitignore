@@ -35,3 +35,9 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Local artifacts and generated content
+.playwright-mcp/
+uploads/
+gocase
+gocase-test

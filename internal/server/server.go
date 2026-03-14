@@ -45,7 +45,7 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, s.sessionStore)
-	dashboardHandler := handlers.NewDashboardHandler(userRepo, testRepo, attemptRepo, assignmentRepo)
+	dashboardHandler := handlers.NewDashboardHandler(userRepo, attemptRepo, assignmentRepo)
 	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo, assignmentRepo)
 	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
 	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo)
