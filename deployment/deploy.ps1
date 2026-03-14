@@ -102,19 +102,20 @@ Invoke-SSH "cd $REMOTE_DIR && tar -xzf gocase.tar.gz && rm -f gocase.tar.gz"
 Invoke-SSH "mkdir -p $REMOTE_DIR/uploads/notes"
 
 # ── Step 3: Build & start containers ─────────────────────────────────
+$COMPOSE_FILE = "deployment/docker-compose.prod.yml"
 if ($DBOnly) {
     Write-Host "`n=== Restarting database only ===" -ForegroundColor Cyan
-    Invoke-SSH "cd $REMOTE_DIR && docker compose -f docker-compose.prod.yml up -d db"
+    Invoke-SSH "cd $REMOTE_DIR && docker compose -f $COMPOSE_FILE up -d db"
 } else {
     Write-Host "`n=== Building and starting all services ===" -ForegroundColor Cyan
-    Invoke-SSH "cd $REMOTE_DIR && docker compose -f docker-compose.prod.yml build --no-cache app"
-    Invoke-SSH "cd $REMOTE_DIR && docker compose -f docker-compose.prod.yml --env-file .env.production up -d"
+    Invoke-SSH "cd $REMOTE_DIR && docker compose -f $COMPOSE_FILE build --no-cache app"
+    Invoke-SSH "cd $REMOTE_DIR && docker compose -f $COMPOSE_FILE --env-file .env.production up -d"
 }
 
 # ── Step 4: Health check ─────────────────────────────────────────────
 Write-Host "`n=== Waiting for services ===" -ForegroundColor Cyan
 Start-Sleep -Seconds 15
-Invoke-SSH "cd $REMOTE_DIR && docker compose -f docker-compose.prod.yml ps"
+Invoke-SSH "cd $REMOTE_DIR && docker compose -f $COMPOSE_FILE ps"
 
 Write-Host "`n=== Checking app health ===" -ForegroundColor Cyan
 Invoke-SSH "curl -sf --max-time 10 http://127.0.0.1:8081/ > /dev/null && echo 'App: OK' || echo 'App: NOT READY - check: docker logs gocase-app'"
@@ -128,7 +129,7 @@ Write-Host @"
   Useful commands (run on the server):
     docker logs gocase-app -f          # live app logs
     docker logs gocase-db  -f          # live db logs
-    docker compose -f docker-compose.prod.yml ps    # container status
+    docker compose -f deployment/docker-compose.prod.yml ps    # container status
     sudo journalctl -u gocase -f       # systemd service logs
 
   OCI Budget Alert (do this once if not done):
