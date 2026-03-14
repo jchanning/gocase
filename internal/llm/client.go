@@ -86,49 +86,117 @@ func (c *Client) GenerateQuestions(ctx context.Context, notesText string, cfg Ge
 
 // ── OCI GenAI REST call ──────────────────────────────────────────────
 
-// ociChatRequest is the request body for the OCI GenAI Chat action.
-type ociChatRequest struct {
-	CompartmentID string               `json:"compartmentId"`
-	ServingMode   ociServingMode       `json:"servingMode"`
-	ChatRequest   ociCohereChatRequest `json:"chatRequest"`
-}
-
 type ociServingMode struct {
 	ServingType string `json:"servingType"`
 	ModelID     string `json:"modelId"`
 }
 
+// ── Cohere format ────────────────────────────────────────────────────
+
 type ociCohereChatRequest struct {
+	CompartmentID string             `json:"compartmentId"`
+	ServingMode   ociServingMode     `json:"servingMode"`
+	ChatRequest   ociCohereInnerChat `json:"chatRequest"`
+}
+
+type ociCohereInnerChat struct {
 	APIFormat   string  `json:"apiFormat"`
 	Message     string  `json:"message"`
 	MaxTokens   int     `json:"maxTokens"`
 	Temperature float64 `json:"temperature"`
 }
 
-// ociChatResponse is a minimal representation of the chat API response.
-type ociChatResponse struct {
+type ociCohereResponse struct {
 	ChatResponse struct {
-		APIFormat string `json:"apiFormat"`
-		Text      string `json:"text"`
+		Text string `json:"text"`
 	} `json:"chatResponse"`
 }
 
-func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, error) {
-	reqBody := ociChatRequest{
-		CompartmentID: c.cfg.CompartmentID,
-		ServingMode: ociServingMode{
-			ServingType: "ON_DEMAND",
-			ModelID:     c.cfg.ModelID,
-		},
-		ChatRequest: ociCohereChatRequest{
-			APIFormat:   "COHERE",
-			Message:     prompt,
-			MaxTokens:   c.cfg.MaxTokens,
-			Temperature: c.cfg.Temperature,
-		},
-	}
+// ── Generic (Llama / OpenAI-compatible) format ───────────────────────
 
-	bodyBytes, err := json.Marshal(reqBody)
+type ociGenericChatRequest struct {
+	CompartmentID string              `json:"compartmentId"`
+	ServingMode   ociServingMode      `json:"servingMode"`
+	ChatRequest   ociGenericInnerChat `json:"chatRequest"`
+}
+
+type ociGenericInnerChat struct {
+	APIFormat   string              `json:"apiFormat"`
+	Messages    []ociGenericMessage `json:"messages"`
+	MaxTokens   int                 `json:"maxTokens"`
+	Temperature float64             `json:"temperature"`
+}
+
+type ociGenericMessage struct {
+	Role    string                  `json:"role"`
+	Content []ociGenericContentPart `json:"content"`
+}
+
+type ociGenericContentPart struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+type ociGenericResponse struct {
+	ChatResponse struct {
+		Choices []struct {
+			Message struct {
+				Content []struct {
+					Text string `json:"text"`
+				} `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	} `json:"chatResponse"`
+}
+
+// isGenericModel returns true for model families that use the GENERIC API format
+// (e.g. Meta Llama). Cohere models use the COHERE format.
+func isGenericModel(modelID string) bool {
+	return strings.HasPrefix(modelID, "meta.")
+}
+
+func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, error) {
+	var bodyBytes []byte
+	var err error
+
+	if isGenericModel(c.cfg.ModelID) {
+		reqBody := ociGenericChatRequest{
+			CompartmentID: c.cfg.CompartmentID,
+			ServingMode: ociServingMode{
+				ServingType: "ON_DEMAND",
+				ModelID:     c.cfg.ModelID,
+			},
+			ChatRequest: ociGenericInnerChat{
+				APIFormat: "GENERIC",
+				Messages: []ociGenericMessage{
+					{
+						Role: "USER",
+						Content: []ociGenericContentPart{
+							{Type: "TEXT", Text: prompt},
+						},
+					},
+				},
+				MaxTokens:   c.cfg.MaxTokens,
+				Temperature: c.cfg.Temperature,
+			},
+		}
+		bodyBytes, err = json.Marshal(reqBody)
+	} else {
+		reqBody := ociCohereChatRequest{
+			CompartmentID: c.cfg.CompartmentID,
+			ServingMode: ociServingMode{
+				ServingType: "ON_DEMAND",
+				ModelID:     c.cfg.ModelID,
+			},
+			ChatRequest: ociCohereInnerChat{
+				APIFormat:   "COHERE",
+				Message:     prompt,
+				MaxTokens:   c.cfg.MaxTokens,
+				Temperature: c.cfg.Temperature,
+			},
+		}
+		bodyBytes, err = json.Marshal(reqBody)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -159,15 +227,25 @@ func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, e
 		return "", fmt.Errorf("OCI API returned %d: %s", resp.StatusCode, string(respBytes))
 	}
 
-	var ociResp ociChatResponse
+	if isGenericModel(c.cfg.ModelID) {
+		var ociResp ociGenericResponse
+		if err := json.Unmarshal(respBytes, &ociResp); err != nil {
+			return "", fmt.Errorf("decode OCI response: %w", err)
+		}
+		if len(ociResp.ChatResponse.Choices) == 0 ||
+			len(ociResp.ChatResponse.Choices[0].Message.Content) == 0 {
+			return "", fmt.Errorf("empty response from OCI GenAI")
+		}
+		return ociResp.ChatResponse.Choices[0].Message.Content[0].Text, nil
+	}
+
+	var ociResp ociCohereResponse
 	if err := json.Unmarshal(respBytes, &ociResp); err != nil {
 		return "", fmt.Errorf("decode OCI response: %w", err)
 	}
-
 	if ociResp.ChatResponse.Text == "" {
 		return "", fmt.Errorf("empty response from OCI GenAI")
 	}
-
 	return ociResp.ChatResponse.Text, nil
 }
 
