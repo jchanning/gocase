@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"my-app/internal/auth"
 	"my-app/internal/models"
@@ -20,17 +21,19 @@ import (
 
 // TeacherHandler handles teacher requests
 type TeacherHandler struct {
-	testRepo    *repository.TestRepository
-	userRepo    *repository.UserRepository
-	attemptRepo *repository.AttemptRepository
+	testRepo       *repository.TestRepository
+	userRepo       *repository.UserRepository
+	attemptRepo    *repository.AttemptRepository
+	assignmentRepo *repository.AssignmentRepository
 }
 
 // NewTeacherHandler creates a new teacher handler
-func NewTeacherHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository, attemptRepo *repository.AttemptRepository) *TeacherHandler {
+func NewTeacherHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository, attemptRepo *repository.AttemptRepository, assignmentRepo *repository.AssignmentRepository) *TeacherHandler {
 	return &TeacherHandler{
-		testRepo:    testRepo,
-		userRepo:    userRepo,
-		attemptRepo: attemptRepo,
+		testRepo:       testRepo,
+		userRepo:       userRepo,
+		attemptRepo:    attemptRepo,
+		assignmentRepo: assignmentRepo,
 	}
 }
 
@@ -651,4 +654,100 @@ func isAllowedImageType(ext string) bool {
 		".webp": true,
 	}
 	return allowed[ext]
+}
+
+// ShowAssignTest displays the assignment form so a teacher can assign a test to students.
+func (h *TeacherHandler) ShowAssignTest(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+	testID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid test ID", http.StatusBadRequest)
+		return
+	}
+
+	test, err := h.testRepo.GetByID(r.Context(), testID)
+	if err != nil {
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	students, err := h.userRepo.GetUsersByRole(r.Context(), "student")
+	if err != nil {
+		log.Printf("Error fetching students: %v", err)
+		students = []models.User{}
+	}
+
+	// Collect already-assigned student IDs for this test so the UI can highlight them.
+	existing, _ := h.assignmentRepo.GetByTeacher(r.Context(), session.UserID)
+	alreadyAssigned := make(map[int]bool)
+	for _, a := range existing {
+		if a.TestID == testID && a.Status != "completed" {
+			alreadyAssigned[a.AssignedTo] = true
+		}
+	}
+
+	data := map[string]interface{}{
+		"Session":         session,
+		"Test":            test,
+		"Students":        students,
+		"AlreadyAssigned": alreadyAssigned,
+	}
+
+	tmpl, err := template.ParseFiles("views/layout.html", "views/teacher_assign.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// AssignTest processes the assignment form and creates assignment records.
+func (h *TeacherHandler) AssignTest(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+	testID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid test ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	dueDateStr := r.FormValue("due_date")
+	if dueDateStr == "" {
+		http.Error(w, "Due date is required", http.StatusBadRequest)
+		return
+	}
+
+	dueDate, err := time.Parse("2006-01-02", dueDateStr)
+	if err != nil {
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
+	}
+
+	assignerID := session.UserID
+	for _, sidStr := range r.Form["student_ids"] {
+		sid, err := strconv.Atoi(sidStr)
+		if err != nil {
+			continue
+		}
+		a := &models.TestAssignment{
+			TestID:     testID,
+			AssignedBy: &assignerID,
+			AssignedTo: sid,
+			DueDate:    dueDate,
+		}
+		if err := h.assignmentRepo.Create(r.Context(), a); err != nil {
+			log.Printf("Error assigning test %d to student %d: %v", testID, sid, err)
+		}
+	}
+
+	http.Redirect(w, r, "/teacher/dashboard", http.StatusSeeOther)
 }

@@ -373,7 +373,7 @@
     
     <footer class="bg-gray-800 text-white p-4 mt-8">
         <div class="container mx-auto text-center">
-            <p class="text-sm">&copy; 2026 GoCaSE - Built with Go, Chi, HTMX & TailwindCSS</p>
+            <p class="text-sm">&copy; 2026 GoCaSE - Built with Go, Chi, HTMX &amp; TailwindCSS{{if .Session}} &nbsp;&middot;&nbsp; <span class="text-gray-400">v{{.Session.AppVersion}}</span>{{end}}</p>
         </div>
     </footer>
 </body>

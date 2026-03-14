@@ -120,6 +120,33 @@
     </div>
     {{end}}
 
+    {{if .Recommendation}}
+    <div class="app-card p-6 mt-6 bg-green-50 border-l-4 border-green-400">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-green-800 mb-1">🚀 Ready for the next challenge?</h3>
+                <p class="text-green-700 text-sm">Great work! Based on your performance, we recommend:</p>
+                <p class="font-semibold text-gray-800 mt-2">{{.Recommendation.Title}}</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="px-2 py-0.5 text-xs rounded font-medium
+                        {{if eq .Recommendation.Difficulty "Easy"}}bg-green-100 text-green-800
+                        {{else if eq .Recommendation.Difficulty "Medium"}}bg-yellow-100 text-yellow-800
+                        {{else}}bg-red-100 text-red-800{{end}}">
+                        {{.Recommendation.Difficulty}}
+                    </span>
+                    {{if .Recommendation.Subject}}
+                    <span class="text-sm text-gray-600">{{.Recommendation.Subject.Name}}</span>
+                    {{end}}
+                    <span class="text-sm text-gray-500">&middot; {{.Recommendation.QuestionCount}} questions</span>
+                </div>
+            </div>
+            <a href="/test/start?id={{.Recommendation.ID}}" class="btn btn-primary py-2 px-6 whitespace-nowrap">
+                Try It →
+            </a>
+        </div>
+    </div>
+    {{end}}
+
     <div class="mt-8 flex justify-center gap-4">
         <a href="/tests" class="btn btn-primary py-3 px-6">
             Back to Tests

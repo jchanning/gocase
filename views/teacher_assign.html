@@ -1,0 +1,73 @@
+{{define "content"}}
+<div class="mb-6">
+    <a href="/teacher/dashboard" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Dashboard</a>
+    <h2 class="page-title text-3xl mt-2">Assign Test to Students</h2>
+    <p class="page-subtitle">Select students and set a due date for <strong>{{.Test.Title}}</strong></p>
+</div>
+
+<!-- Test Info Card -->
+<div class="app-card p-4 mb-6 flex flex-wrap gap-4 items-center">
+    <span class="px-3 py-1 text-sm font-semibold rounded-full
+        {{if eq .Test.Difficulty "Easy"}}bg-green-100 text-green-800
+        {{else if eq .Test.Difficulty "Medium"}}bg-yellow-100 text-yellow-800
+        {{else}}bg-red-100 text-red-800{{end}}">
+        {{.Test.Difficulty}}
+    </span>
+    <span class="text-gray-600 text-sm">⏱️ {{.Test.TimeLimitMinutes}} min</span>
+    <span class="text-gray-600 text-sm">✅ Passing score: {{.Test.PassingScore}}%</span>
+</div>
+
+<form method="POST" action="/teacher/test/{{.Test.ID}}/assign">
+    <!-- Due Date -->
+    <div class="app-card p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">📅 Due Date</h3>
+        <div class="max-w-xs">
+            <label for="due_date" class="block text-sm text-gray-600 mb-1">Students must complete by:</label>
+            <input type="date" id="due_date" name="due_date" class="app-input" required value="">
+        </div>
+    </div>
+
+    <!-- Student Selection -->
+    <div class="app-card p-6 mb-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">👥 Select Students</h3>
+        {{if .Students}}
+        <div class="mb-3 flex gap-2">
+            <button type="button" onclick="selectAll(true)" class="btn btn-secondary text-sm py-1 px-3">Select All</button>
+            <button type="button" onclick="selectAll(false)" class="btn btn-secondary text-sm py-1 px-3">Deselect All</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+            {{range .Students}}
+            <label class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50
+                {{if index $.AlreadyAssigned .ID}}bg-blue-50 border-blue-200{{else}}border-gray-200{{end}}">
+                <input type="checkbox" name="student_ids" value="{{.ID}}"
+                       class="student-checkbox h-4 w-4 text-blue-600"
+                       {{if index $.AlreadyAssigned .ID}}checked{{end}}>
+                <div>
+                    <p class="font-medium text-gray-800">{{.Username}}</p>
+                    <p class="text-xs text-gray-500">{{.Email}}</p>
+                    {{if index $.AlreadyAssigned .ID}}
+                    <p class="text-xs text-blue-600 font-medium">Already assigned</p>
+                    {{end}}
+                </div>
+            </label>
+            {{end}}
+        </div>
+        {{else}}
+        <p class="text-gray-500 text-center py-4">No students registered yet.</p>
+        {{end}}
+    </div>
+
+    <div class="flex gap-3">
+        <button type="submit" class="btn btn-primary py-3 px-8">
+            📋 Assign to Selected Students
+        </button>
+        <a href="/teacher/dashboard" class="btn btn-secondary py-3 px-6">Cancel</a>
+    </div>
+</form>
+
+<script>
+function selectAll(checked) {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = checked);
+}
+</script>
+{{end}}

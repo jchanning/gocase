@@ -105,6 +105,47 @@ func (r *TestRepository) DeleteTest(ctx context.Context, testID int) error {
 	return err
 }
 
+// GetRecommendation finds a published test in the same subject at the specified difficulty
+// that the given user has not yet completed. Returns nil, pgx.ErrNoRows when none is found.
+func (r *TestRepository) GetRecommendation(ctx context.Context, subjectID int, difficulty string, excludeTestID, userID int) (*models.Test, error) {
+	var t models.Test
+	var subjectIDOut *int
+	var subjectName, subjectDesc *string
+
+	err := r.pool.QueryRow(ctx, `
+		SELECT t.id, t.title, t.description, t.subject_id, t.difficulty,
+		       t.time_limit_minutes, t.passing_score,
+		       s.id, s.name, s.description,
+		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
+		FROM tests t
+		LEFT JOIN subjects s ON t.subject_id = s.id
+		WHERE t.subject_id = $1
+		  AND LOWER(t.difficulty) = LOWER($2)
+		  AND t.published = true
+		  AND t.id != $3
+		  AND NOT EXISTS (
+		    SELECT 1 FROM test_attempts ta
+		    WHERE ta.test_id = t.id AND ta.user_id = $4 AND ta.status = 'completed'
+		  )
+		ORDER BY t.created_at DESC
+		LIMIT 1`,
+		subjectID, difficulty, excludeTestID, userID,
+	).Scan(
+		&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.Difficulty,
+		&t.TimeLimitMinutes, &t.PassingScore,
+		&subjectIDOut, &subjectName, &subjectDesc,
+		&t.QuestionCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if subjectIDOut != nil {
+		t.Subject = &models.Subject{ID: *subjectIDOut, Name: *subjectName, Description: *subjectDesc}
+	}
+	return &t, nil
+}
+
 // UpdateTestNotes updates the notes filename for a test
 func (r *TestRepository) UpdateTestNotes(ctx context.Context, testID int, notesFilename *string) error {
 	query := `UPDATE tests SET notes_filename = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`

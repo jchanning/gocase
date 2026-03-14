@@ -41,13 +41,14 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	userRepo := repository.NewUserRepository(db.Pool())
 	testRepo := repository.NewTestRepository(db.Pool())
 	attemptRepo := repository.NewAttemptRepository(db.Pool())
+	assignmentRepo := repository.NewAssignmentRepository(db.Pool())
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, s.sessionStore)
-	dashboardHandler := handlers.NewDashboardHandler(userRepo, testRepo, attemptRepo)
-	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo)
+	dashboardHandler := handlers.NewDashboardHandler(userRepo, testRepo, attemptRepo, assignmentRepo)
+	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo, assignmentRepo)
 	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
-	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo)
+	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo)
 
 	// Initialize auth middleware
 	authMiddleware := auth.NewMiddleware(s.sessionStore)
@@ -98,6 +99,8 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 			r.Post("/teacher/test/{id}/unpublish", teacherHandler.UnpublishTest)
 			r.Post("/teacher/test/{id}/delete", teacherHandler.DeleteTest)
 			r.Delete("/teacher/test/{id}", teacherHandler.DeleteTest)
+			r.Get("/teacher/test/{id}/assign", teacherHandler.ShowAssignTest)
+			r.Post("/teacher/test/{id}/assign", teacherHandler.AssignTest)
 
 			// Admin-only routes
 			r.Group(func(r chi.Router) {

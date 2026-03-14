@@ -21,7 +21,10 @@ COPY . .
 # TARGETARCH is set automatically by Docker buildx / --platform,
 # or override with --build-arg TARGETARCH=amd64
 ARG TARGETARCH=arm64
-RUN CGO_ENABLED=0 GOARCH=${TARGETARCH} GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server/
+ARG BUILD_VERSION=dev
+RUN CGO_ENABLED=0 GOARCH=${TARGETARCH} GOOS=linux go build \
+    -ldflags="-w -s -X my-app/internal/version.Version=${BUILD_VERSION}" \
+    -o /app/server ./cmd/server/
 
 # Final stage - using alpine for minimal image with shell access
 FROM alpine:latest

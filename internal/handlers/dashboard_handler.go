@@ -12,17 +12,19 @@ import (
 
 // DashboardHandler handles dashboard requests
 type DashboardHandler struct {
-	userRepo    *repository.UserRepository
-	testRepo    *repository.TestRepository
-	attemptRepo *repository.AttemptRepository
+	userRepo       *repository.UserRepository
+	testRepo       *repository.TestRepository
+	attemptRepo    *repository.AttemptRepository
+	assignmentRepo *repository.AssignmentRepository
 }
 
 // NewDashboardHandler creates a new dashboard handler
-func NewDashboardHandler(userRepo *repository.UserRepository, testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository) *DashboardHandler {
+func NewDashboardHandler(userRepo *repository.UserRepository, testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository, assignmentRepo *repository.AssignmentRepository) *DashboardHandler {
 	return &DashboardHandler{
-		userRepo:    userRepo,
-		testRepo:    testRepo,
-		attemptRepo: attemptRepo,
+		userRepo:       userRepo,
+		testRepo:       testRepo,
+		attemptRepo:    attemptRepo,
+		assignmentRepo: assignmentRepo,
 	}
 }
 
@@ -58,12 +60,23 @@ func (h *DashboardHandler) ShowDashboard(w http.ResponseWriter, r *http.Request)
 		testStats = make(map[string]interface{})
 	}
 
+	// Get assigned tests for students
+	var assignments []models.TestAssignment
+	if session.Role == "student" {
+		assignments, err = h.assignmentRepo.GetByStudent(r.Context(), session.UserID)
+		if err != nil {
+			log.Printf("Error fetching assignments: %v", err)
+			assignments = nil
+		}
+	}
+
 	data := map[string]interface{}{
 		"Session":      session,
 		"Stats":        stats,
 		"Attempts":     attempts,
 		"Achievements": achievements,
 		"TestStats":    testStats,
+		"Assignments":  assignments,
 	}
 
 	tmpl, err := template.ParseFiles("views/layout.html", "views/dashboard.html")

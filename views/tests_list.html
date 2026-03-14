@@ -56,11 +56,26 @@
     </form>
 </div>
 
+<!-- Group By Controls -->
+<div class="app-card p-4 mb-4 flex items-center gap-3 flex-wrap">
+    <span class="text-sm font-medium text-gray-600">Group by:</span>
+    <div class="flex gap-2">
+        <button data-group="none" class="group-btn px-3 py-1.5 rounded text-sm font-medium" onclick="setGrouping('none')">None</button>
+        <button data-group="subject" class="group-btn px-3 py-1.5 rounded text-sm font-medium" onclick="setGrouping('subject')">Subject</button>
+        <button data-group="difficulty" class="group-btn px-3 py-1.5 rounded text-sm font-medium" onclick="setGrouping('difficulty')">Difficulty</button>
+        <button data-group="standard" class="group-btn px-3 py-1.5 rounded text-sm font-medium" onclick="setGrouping('standard')">Standard</button>
+    </div>
+</div>
+
 <!-- Tests Grid -->
 {{if .Tests}}
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div id="tests-flat-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {{range .Tests}}
-    <div class="app-card p-6 hover:shadow-lg transition duration-200">
+    <div class="app-card p-6 hover:shadow-lg transition duration-200"
+         data-test-card="true"
+         data-subject="{{if .Subject}}{{.Subject.Name}}{{else}}No Subject{{end}}"
+         data-difficulty="{{.Difficulty}}"
+         data-standard="{{.ExamStandard}}">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-xl font-bold text-gray-800">{{.Title}}</h3>
             <span class="px-2 py-1 text-xs font-semibold rounded
@@ -109,10 +124,102 @@
     </div>
     {{end}}
 </div>
+<div id="tests-grouped"></div>
 {{else}}
 <div class="app-card p-12 text-center">
     <p class="text-gray-500 text-lg">No tests available at the moment.</p>
     <p class="text-gray-400 text-sm mt-2">Check back later or contact your teacher.</p>
 </div>
 {{end}}
+
+<script>
+(function() {
+    var STORAGE_KEY = 'gocase_test_grouping';
+
+    function applyBtnStyle(mode) {
+        document.querySelectorAll('.group-btn').forEach(function(btn) {
+            if (btn.dataset.group === mode) {
+                btn.className = 'group-btn px-3 py-1.5 rounded text-sm font-medium bg-blue-600 text-white';
+            } else {
+                btn.className = 'group-btn px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200';
+            }
+        });
+    }
+
+    function renderTests(mode) {
+        var flatGrid = document.getElementById('tests-flat-grid');
+        var groupedDiv = document.getElementById('tests-grouped');
+        if (!flatGrid || !groupedDiv) return;
+
+        if (mode === 'none') {
+            flatGrid.classList.remove('hidden');
+            groupedDiv.innerHTML = '';
+            return;
+        }
+
+        flatGrid.classList.add('hidden');
+        groupedDiv.innerHTML = '';
+
+        var cards = Array.from(document.querySelectorAll('[data-test-card]'));
+        if (!cards.length) return;
+
+        var groups = {};
+        cards.forEach(function(card) {
+            var key = card.dataset[mode] || 'Unknown';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(card.cloneNode(true));
+        });
+
+        var sortedKeys = Object.keys(groups).sort(function(a, b) {
+            if (mode === 'difficulty') {
+                var order = { 'Easy': 0, 'Medium': 1, 'Hard': 2 };
+                return (order[a] !== undefined ? order[a] : 9) - (order[b] !== undefined ? order[b] : 9);
+            }
+            return a.localeCompare(b);
+        });
+
+        sortedKeys.forEach(function(key) {
+            var count = groups[key].length;
+            var groupID = 'grp-' + key.replace(/[^a-zA-Z0-9]/g, '-');
+
+            var section = document.createElement('div');
+            section.className = 'mb-6';
+            section.innerHTML =
+                '<button onclick="toggleGroup(\'' + groupID + '\')" ' +
+                '  class="w-full flex items-center justify-between p-4 app-card mb-3 hover:bg-gray-50">' +
+                '  <span class="font-semibold text-gray-800">' + key + '</span>' +
+                '  <div class="flex items-center gap-2">' +
+                '    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">' + count + ' test' + (count !== 1 ? 's' : '') + '</span>' +
+                '    <span id="' + groupID + '-chevron" class="text-gray-500">&#9660;</span>' +
+                '  </div>' +
+                '</button>' +
+                '<div id="' + groupID + '" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>';
+
+            var grid = section.querySelector('#' + groupID);
+            groups[key].forEach(function(card) { grid.appendChild(card); });
+            groupedDiv.appendChild(section);
+        });
+    }
+
+    window.toggleGroup = function(id) {
+        var el = document.getElementById(id);
+        var chevron = document.getElementById(id + '-chevron');
+        if (el) {
+            el.classList.toggle('hidden');
+            if (chevron) chevron.innerHTML = el.classList.contains('hidden') ? '&#9654;' : '&#9660;';
+        }
+    };
+
+    window.setGrouping = function(mode) {
+        localStorage.setItem(STORAGE_KEY, mode);
+        applyBtnStyle(mode);
+        renderTests(mode);
+    };
+
+    // Init on page load
+    var saved = localStorage.getItem(STORAGE_KEY) || 'none';
+    applyBtnStyle(saved);
+    renderTests(saved);
+})();
+</script>
 {{end}}

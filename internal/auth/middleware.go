@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"my-app/internal/version"
 )
 
 type contextKey string
@@ -55,8 +57,10 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
-		// Add session data to request context
-		ctx := context.WithValue(r.Context(), sessionDataKey, session)
+		// Copy session to avoid mutating the shared store entry, then inject app version.
+		sessionCopy := *session
+		sessionCopy.AppVersion = version.Version
+		ctx := context.WithValue(r.Context(), sessionDataKey, &sessionCopy)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

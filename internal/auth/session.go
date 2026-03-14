@@ -17,10 +17,11 @@ type SessionStore struct {
 
 // SessionData holds session information
 type SessionData struct {
-	UserID    int
-	Username  string
-	Role      string
-	CreatedAt time.Time
+	UserID     int
+	Username   string
+	Role       string
+	CreatedAt  time.Time
+	AppVersion string
 }
 
 // NewSessionStore creates a new session store

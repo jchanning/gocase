@@ -105,6 +105,45 @@
     </div>
 </div>
 
+{{if .Assignments}}
+<!-- Assigned Tests -->
+<div class="app-card p-6 mb-6">
+    <h3 class="text-xl font-bold text-gray-800 mb-4">📋 Assigned Tests</h3>
+    <div class="space-y-3">
+        {{range .Assignments}}
+        <div class="flex items-center justify-between p-4 rounded-lg border
+            {{if eq .Status "overdue"}}bg-red-50 border-red-200
+            {{else if eq .Status "completed"}}bg-green-50 border-green-200
+            {{else}}bg-blue-50 border-blue-200{{end}}">
+            <div>
+                <p class="font-semibold text-gray-800">{{.Test.Title}}</p>
+                <p class="text-sm text-gray-600">
+                    {{.Test.Difficulty}}
+                    {{if .Test.Subject}} &middot; {{.Test.Subject.Name}}{{end}}
+                    &middot; Due: <span class="font-medium">{{.DueDate.Format "Jan 02, 2006"}}</span>
+                </p>
+            </div>
+            <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                <span class="text-xs px-2 py-1 rounded font-medium
+                    {{if eq .Status "overdue"}}bg-red-100 text-red-700
+                    {{else if eq .Status "completed"}}bg-green-100 text-green-700
+                    {{else}}bg-blue-100 text-blue-700{{end}}">
+                    {{if eq .Status "overdue"}}⚠️ Overdue
+                    {{else if eq .Status "completed"}}✅ Done
+                    {{else}}📌 Pending{{end}}
+                </span>
+                {{if ne .Status "completed"}}
+                <a href="/test/start?id={{.Test.ID}}" class="btn btn-primary py-1 px-4 text-sm whitespace-nowrap">
+                    Start →
+                </a>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
 <!-- Recent Tests -->
 <div class="app-card p-6">
     <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Test Attempts</h3>

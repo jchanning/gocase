@@ -120,6 +120,20 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     UNIQUE(user_id, achievement_id)
 );
 
+-- Test Assignments (teacher assigns a test to a student with a deadline)
+CREATE TABLE IF NOT EXISTS test_assignments (
+    id SERIAL PRIMARY KEY,
+    test_id INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_to INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    due_date TIMESTAMP NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'overdue')),
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_to ON test_assignments(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_assignments_test ON test_assignments(test_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_assigned_by ON test_assignments(assigned_by);
+
 -- User Points/Scores
 CREATE TABLE IF NOT EXISTS user_stats (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

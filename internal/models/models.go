@@ -152,6 +152,22 @@ type UserStats struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 }
 
+// TestAssignment represents a test assigned by a teacher to a student with a deadline.
+type TestAssignment struct {
+	ID         int       `json:"id"`
+	TestID     int       `json:"test_id"`
+	AssignedBy *int      `json:"assigned_by"`
+	AssignedTo int       `json:"assigned_to"`
+	DueDate    time.Time `json:"due_date"`
+	Status     string    `json:"status"` // pending, completed, overdue
+	AssignedAt time.Time `json:"assigned_at"`
+
+	// Related data
+	Test     *Test `json:"test,omitempty"`
+	Student  *User `json:"student,omitempty"`
+	Assigner *User `json:"assigner,omitempty"`
+}
+
 // TestUpload represents the structure for uploading tests via JSON/CSV
 type TestUpload struct {
 	Title            string           `json:"title"`
