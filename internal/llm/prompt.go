@@ -38,7 +38,8 @@ RULES:
 4. Points per question: %d.
 5. Questions should cover different parts of the notes.
 6. Options should be plausible — avoid obviously wrong distractors.
-7. Respond ONLY with a valid JSON array, no markdown fences.
+7. Include a concise explanation (1-3 sentences) for why the correct answer is right.
+8. Respond ONLY with a valid JSON array, no markdown fences.
 
 REQUIRED JSON FORMAT (array of objects):
 [
@@ -46,7 +47,8 @@ REQUIRED JSON FORMAT (array of objects):
     "question_text": "...",
     "options": ["A", "B", "C", "D"],
     "correct_index": 0,
-    "points": %d
+    "points": %d,
+    "explanation": "The correct answer is A because ..."
   }
 ]
 
@@ -90,6 +92,7 @@ func parseQuestions(raw string) ([]models.QuestionUpload, error) {
 		if q.Points <= 0 {
 			questions[i].Points = 1
 		}
+		// explanation is optional — no error if absent
 	}
 
 	return questions, nil

@@ -123,11 +123,11 @@ func (r *TestRepository) DeleteQuestion(ctx context.Context, questionID int) err
 func (r *TestRepository) UpdateQuestion(ctx context.Context, question *models.Question) error {
 	query := `
 		UPDATE questions
-		SET question_text = $1, image_url = $2, points = $3, question_order = $4
-		WHERE id = $5`
+		SET question_text = $1, image_url = $2, points = $3, question_order = $4, explanation = $5
+		WHERE id = $6`
 
 	_, err := r.pool.Exec(ctx, query,
-		question.QuestionText, question.ImageURL, question.Points, question.QuestionOrder, question.ID)
+		question.QuestionText, question.ImageURL, question.Points, question.QuestionOrder, question.Explanation, question.ID)
 	return err
 }
 
@@ -196,7 +196,7 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 // getQuestionsByTestID retrieves all questions for a test
 func (r *TestRepository) getQuestionsByTestID(ctx context.Context, testID int) ([]models.Question, error) {
 	query := `
-		SELECT id, test_id, question_text, image_url, question_order, points, created_at
+		SELECT id, test_id, question_text, image_url, question_order, points, explanation, created_at
 		FROM questions
 		WHERE test_id = $1
 		ORDER BY question_order`
@@ -211,7 +211,7 @@ func (r *TestRepository) getQuestionsByTestID(ctx context.Context, testID int) (
 	for rows.Next() {
 		var q models.Question
 		err := rows.Scan(&q.ID, &q.TestID, &q.QuestionText, &q.ImageURL,
-			&q.QuestionOrder, &q.Points, &q.CreatedAt)
+			&q.QuestionOrder, &q.Points, &q.Explanation, &q.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -275,13 +275,13 @@ func (r *TestRepository) Create(ctx context.Context, test *models.Test) error {
 // CreateQuestion creates a new question
 func (r *TestRepository) CreateQuestion(ctx context.Context, question *models.Question) error {
 	query := `
-		INSERT INTO questions (test_id, question_text, image_url, question_order, points)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO questions (test_id, question_text, image_url, question_order, points, explanation)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at`
 
 	return r.pool.QueryRow(ctx, query,
 		question.TestID, question.QuestionText, question.ImageURL,
-		question.QuestionOrder, question.Points,
+		question.QuestionOrder, question.Points, question.Explanation,
 	).Scan(&question.ID, &question.CreatedAt)
 }
 

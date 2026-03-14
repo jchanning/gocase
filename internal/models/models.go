@@ -68,6 +68,7 @@ type Question struct {
 	ImageURL      *string   `json:"image_url"`
 	QuestionOrder int       `json:"question_order"`
 	Points        int       `json:"points"`
+	Explanation   string    `json:"explanation"`
 	CreatedAt     time.Time `json:"created_at"`
 
 	// Related data
@@ -172,4 +173,5 @@ type QuestionUpload struct {
 	Points       int      `json:"points"`
 	Options      []string `json:"options"`       // Array of 4 options
 	CorrectIndex int      `json:"correct_index"` // 0-3, which option is correct
+	Explanation  string   `json:"explanation,omitempty"`
 }

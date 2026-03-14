@@ -572,8 +572,8 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 	// Create map of answers and pre-compute plain int/bool maps for template use
 	// (avoids *int/*bool pointer comparison issues in Go templates)
 	answerMap := make(map[int]*models.StudentAnswer)
-	selectedOptions := make(map[int]int)  // questionID → selectedOptionID (0 = not answered)
-	answerCorrect := make(map[int]bool)   // questionID → true if correct
+	selectedOptions := make(map[int]int) // questionID → selectedOptionID (0 = not answered)
+	answerCorrect := make(map[int]bool)  // questionID → true if correct
 	for i := range answers {
 		answerMap[answers[i].QuestionID] = &answers[i]
 		if answers[i].SelectedOptionID != nil {
@@ -677,8 +677,8 @@ func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
 	// Create map of answers and pre-compute plain int/bool maps for template use
 	// (avoids *int/*bool pointer comparison issues in Go templates)
 	answerMap := make(map[int]*models.StudentAnswer)
-	selectedOptions := make(map[int]int)  // questionID → selectedOptionID (0 = not answered)
-	answerCorrect := make(map[int]bool)   // questionID → true if correct
+	selectedOptions := make(map[int]int) // questionID → selectedOptionID (0 = not answered)
+	answerCorrect := make(map[int]bool)  // questionID → true if correct
 	correctCount := 0
 	incorrectCount := 0
 	for i := range answers {

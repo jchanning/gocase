@@ -56,9 +56,12 @@ CREATE TABLE IF NOT EXISTS questions (
     image_url VARCHAR(500),
     question_order INTEGER NOT NULL,
     points INTEGER NOT NULL DEFAULT 1,
+    explanation TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(test_id, question_order)
 );
+-- Migrate existing installations
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS explanation TEXT;
 
 -- Answer Options (4 per question)
 CREATE TABLE IF NOT EXISTS answer_options (

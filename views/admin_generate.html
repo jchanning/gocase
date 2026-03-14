@@ -271,10 +271,14 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                     ${optionsHtml}
                 </div>
-                <div class="flex items-center gap-4 mt-2">
+                <div class="flex items-center gap-4 mt-2 mb-3">
                     <label class="text-sm text-gray-600">Points:
                         <input type="number" value="${q.points || 1}" min="1" max="10" class="app-input w-20 ml-1 points-input" data-idx="${idx}">
                     </label>
+                </div>
+                <div>
+                    <label class="text-sm font-semibold text-gray-600 block mb-1">💡 Explanation (shown to students after test)</label>
+                    <textarea class="app-input w-full explanation-input" data-idx="${idx}" rows="2" placeholder="Why is the correct answer right? (optional)">${escapeHtml(q.explanation || '')}</textarea>
                 </div>`;
 
             questionsContainer.appendChild(card);
@@ -324,12 +328,15 @@
             const correctIndex = correctRadio ? parseInt(correctRadio.value) : 0;
             const pointsInput = card.querySelector('.points-input');
             const points = pointsInput ? parseInt(pointsInput.value) || 1 : 1;
+            const explanationInput = card.querySelector('.explanation-input');
+            const explanation = explanationInput ? explanationInput.value.trim() : '';
 
             questions.push({
                 question_text: qText,
                 options: options,
                 correct_index: correctIndex,
-                points: points
+                points: points,
+                explanation: explanation
             });
         });
 

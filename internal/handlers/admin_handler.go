@@ -857,6 +857,50 @@ func (h *AdminHandler) GenerateFromNotes(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// ExportTestPDF renders a print-friendly page for a test (admin/teacher can save as PDF).
+func (h *AdminHandler) ExportTestPDF(w http.ResponseWriter, r *http.Request) {
+	testIDStr := r.PathValue("id")
+	testID, err := strconv.Atoi(testIDStr)
+	if err != nil {
+		http.Error(w, "Invalid test ID", http.StatusBadRequest)
+		return
+	}
+
+	test, err := h.testRepo.GetByID(r.Context(), testID)
+	if err != nil {
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"optionLetter": func(i int) string {
+			letters := []string{"A", "B", "C", "D", "E", "F"}
+			if i < len(letters) {
+				return letters[i]
+			}
+			return fmt.Sprintf("%d", i+1)
+		},
+	}
+
+	tmpl, err := template.New("test_pdf.html").Funcs(funcMap).ParseFiles("views/test_pdf.html")
+	if err != nil {
+		log.Printf("Error parsing PDF template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"Test": test,
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := tmpl.ExecuteTemplate(w, "test_pdf.html", data); err != nil {
+		log.Printf("Error executing PDF template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 // parseIntOrDefault parses a string as int or returns default
 func parseIntOrDefault(s string, defaultVal int) int {
 	if s == "" {

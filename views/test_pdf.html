@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Test.Title}} — Print / PDF</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12pt; color: #111; background: #fff; }
+
+        /* ── Screen toolbar ──────────────────────────────── */
+        #toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #1e40af;
+            color: #fff;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.25);
+        }
+        #toolbar h1 { font-size: 1rem; font-weight: 600; }
+        #toolbar .actions { display: flex; gap: 8px; }
+        #toolbar button {
+            background: #fff;
+            color: #1e40af;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 18px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        #toolbar button:hover { background: #e0e7ff; }
+        #toolbar a {
+            color: #bfdbfe;
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+        #toolbar a:hover { color: #fff; }
+
+        /* ── Page container ──────────────────────────────── */
+        #page {
+            max-width: 800px;
+            margin: 28px auto;
+            padding: 0 24px 48px;
+        }
+
+        /* ── Header ──────────────────────────────────────── */
+        .doc-header {
+            border-bottom: 3px solid #1e40af;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .doc-header h2 {
+            font-size: 22pt;
+            color: #1e3a8a;
+            margin-bottom: 6px;
+        }
+        .doc-header .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 10pt;
+            color: #374151;
+        }
+        .doc-header .meta span { font-weight: 600; }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 700;
+        }
+        .badge-easy   { background: #d1fae5; color: #065f46; }
+        .badge-medium { background: #fef3c7; color: #92400e; }
+        .badge-hard   { background: #fee2e2; color: #991b1b; }
+
+        /* ── Answer key toggle ───────────────────────────── */
+        .answer-key-hint {
+            margin-bottom: 20px;
+            padding: 10px 14px;
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 6px 6px 0;
+            font-size: 10pt;
+            color: #1e40af;
+        }
+
+        /* ── Questions ───────────────────────────────────── */
+        .question {
+            margin-bottom: 28px;
+            page-break-inside: avoid;
+        }
+        .question-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .question-num {
+            background: #1e40af;
+            color: #fff;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10pt;
+            font-weight: 700;
+        }
+        .question-text {
+            font-size: 12pt;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+        .question-points {
+            margin-left: auto;
+            font-size: 9pt;
+            color: #6b7280;
+            white-space: nowrap;
+            padding-top: 3px;
+        }
+
+        /* ── Options ─────────────────────────────────────── */
+        .options { margin-left: 36px; }
+        .option {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 7px 10px;
+            margin-bottom: 5px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 11pt;
+        }
+        .option.correct {
+            border-color: #16a34a;
+            background: #f0fdf4;
+        }
+        .option-letter {
+            font-weight: 700;
+            min-width: 18px;
+            color: #374151;
+        }
+        .option.correct .option-letter { color: #15803d; }
+        .correct-mark { color: #16a34a; font-weight: 700; margin-left: auto; }
+
+        /* ── Explanation ─────────────────────────────────── */
+        .explanation {
+            margin: 10px 0 0 36px;
+            padding: 8px 12px;
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 6px 6px 0;
+            font-size: 10pt;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+        .explanation strong { display: block; margin-bottom: 2px; }
+
+        /* ── Section divider ─────────────────────────────── */
+        .section-title {
+            margin: 32px 0 16px;
+            font-size: 14pt;
+            color: #1e3a8a;
+            border-bottom: 2px solid #dbeafe;
+            padding-bottom: 6px;
+        }
+
+        /* ── Print styles ────────────────────────────────── */
+        @media print {
+            #toolbar { display: none !important; }
+            #page { max-width: 100%; margin: 0; padding: 12mm 14mm; }
+            body { font-size: 11pt; }
+            .doc-header { margin-bottom: 16mm; }
+            .option { border-color: #ccc; }
+            .option.correct { border-color: #16a34a; }
+            /* Hide explanations by default when printing student copy */
+            .explanation.hide-in-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Screen toolbar (not printed) -->
+<div id="toolbar">
+    <div style="display:flex;align-items:center;gap:16px;">
+        <h1>📄 {{.Test.Title}}</h1>
+        <a href="/admin/test/{{.Test.ID}}/edit">← Back to Edit</a>
+    </div>
+    <div class="actions">
+        <button onclick="toggleAnswers()">Toggle Answers &amp; Explanations</button>
+        <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+</div>
+
+<div id="page">
+
+    <!-- Document header -->
+    <div class="doc-header">
+        <h2>{{.Test.Title}}</h2>
+        {{if .Test.Description}}<p style="color:#4b5563;margin-bottom:10px;">{{.Test.Description}}</p>{{end}}
+        <div class="meta">
+            {{if .Test.Subject}}<div>Subject: <span>{{.Test.Subject.Name}}</span></div>{{end}}
+            <div>Standard: <span>{{.Test.ExamStandard}}</span></div>
+            <div>Difficulty: <span class="badge {{if eq .Test.Difficulty "Easy"}}badge-easy{{else if eq .Test.Difficulty "Medium"}}badge-medium{{else}}badge-hard{{end}}">{{.Test.Difficulty}}</span></div>
+            <div>Time Limit: <span>{{.Test.TimeLimitMinutes}} minutes</span></div>
+            <div>Passing Score: <span>{{.Test.PassingScore}}%</span></div>
+            <div>Questions: <span>{{len .Test.Questions}}</span></div>
+        </div>
+    </div>
+
+    <div class="answer-key-hint" id="answerHint">
+        <strong>Teacher / Validator Copy</strong> — Correct answers and explanations are shown.
+        Use the <em>Toggle Answers &amp; Explanations</em> button above to hide them for a student copy, then print.
+    </div>
+
+    <!-- Questions -->
+    <div class="section-title">Questions</div>
+
+    {{range $i, $q := .Test.Questions}}
+    <div class="question">
+        <div class="question-header">
+            <div class="question-num">{{add $i 1}}</div>
+            <div class="question-text">{{$q.QuestionText}}</div>
+            <div class="question-points">{{$q.Points}} pt{{if gt $q.Points 1}}s{{end}}</div>
+        </div>
+
+        <div class="options">
+            {{range $j, $opt := $q.Options}}
+            <div class="option{{if $opt.IsCorrect}} correct answer-elem{{end}}">
+                <span class="option-letter">{{optionLetter $j}}</span>
+                <span>{{$opt.OptionText}}</span>
+                {{if $opt.IsCorrect}}<span class="correct-mark answer-elem">✓</span>{{end}}
+            </div>
+            {{end}}
+        </div>
+
+        {{if $q.Explanation}}
+        <div class="explanation answer-elem hide-in-print">
+            <strong>💡 Explanation</strong>{{$q.Explanation}}
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+
+</div>
+
+<script>
+var answersVisible = true;
+function toggleAnswers() {
+    answersVisible = !answersVisible;
+    document.querySelectorAll('.answer-elem').forEach(function(el) {
+        el.style.display = answersVisible ? '' : 'none';
+    });
+    document.getElementById('answerHint').style.display = answersVisible ? '' : 'none';
+}
+</script>
+</body>
+</html>

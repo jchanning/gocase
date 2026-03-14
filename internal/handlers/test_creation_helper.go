@@ -113,6 +113,7 @@ func persistTestUpload(ctx context.Context, repo *repository.TestRepository, upl
 			QuestionText:  q.QuestionText,
 			QuestionOrder: i + 1,
 			Points:        normalizePoints(q.Points),
+			Explanation:   q.Explanation,
 		}
 
 		if q.ImageURL != "" {

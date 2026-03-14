@@ -109,6 +109,7 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 				r.Delete("/admin/manage/subjects/{id}", adminHandler.DeleteSubject)
 				r.Get("/admin/test/{id}/edit", adminHandler.EditTest)
 				r.Get("/admin/test/{id}/preview", teacherHandler.PreviewTest)
+				r.Get("/admin/test/{id}/pdf", adminHandler.ExportTestPDF)
 				r.Post("/admin/test/{id}/delete", adminHandler.DeleteTest)
 				r.Delete("/admin/test/{id}", adminHandler.DeleteTest)
 				r.Post("/admin/test/{id}/update", adminHandler.UpdateTest)
