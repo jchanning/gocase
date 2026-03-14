@@ -569,10 +569,19 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error fetching answers: %v", err)
 	}
 
-	// Create map of answers
+	// Create map of answers and pre-compute plain int/bool maps for template use
+	// (avoids *int/*bool pointer comparison issues in Go templates)
 	answerMap := make(map[int]*models.StudentAnswer)
+	selectedOptions := make(map[int]int)  // questionID → selectedOptionID (0 = not answered)
+	answerCorrect := make(map[int]bool)   // questionID → true if correct
 	for i := range answers {
 		answerMap[answers[i].QuestionID] = &answers[i]
+		if answers[i].SelectedOptionID != nil {
+			selectedOptions[answers[i].QuestionID] = *answers[i].SelectedOptionID
+		}
+		if answers[i].IsCorrect != nil {
+			answerCorrect[answers[i].QuestionID] = *answers[i].IsCorrect
+		}
 	}
 
 	// Calculate percentage
@@ -584,12 +593,14 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 	passed := percentage >= float64(test.PassingScore)
 
 	data := map[string]interface{}{
-		"Session":    session,
-		"Test":       test,
-		"Attempt":    attempt,
-		"Answers":    answerMap,
-		"Percentage": percentage,
-		"Passed":     passed,
+		"Session":         session,
+		"Test":            test,
+		"Attempt":         attempt,
+		"Answers":         answerMap,
+		"SelectedOptions": selectedOptions,
+		"AnswerCorrect":   answerCorrect,
+		"Percentage":      percentage,
+		"Passed":          passed,
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{
@@ -663,16 +674,25 @@ func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error fetching answers: %v", err)
 	}
 
-	// Create map of answers and count correct/incorrect
+	// Create map of answers and pre-compute plain int/bool maps for template use
+	// (avoids *int/*bool pointer comparison issues in Go templates)
 	answerMap := make(map[int]*models.StudentAnswer)
+	selectedOptions := make(map[int]int)  // questionID → selectedOptionID (0 = not answered)
+	answerCorrect := make(map[int]bool)   // questionID → true if correct
 	correctCount := 0
 	incorrectCount := 0
 	for i := range answers {
 		answerMap[answers[i].QuestionID] = &answers[i]
-		if answers[i].IsCorrect != nil && *answers[i].IsCorrect {
-			correctCount++
-		} else if answers[i].IsCorrect != nil {
-			incorrectCount++
+		if answers[i].SelectedOptionID != nil {
+			selectedOptions[answers[i].QuestionID] = *answers[i].SelectedOptionID
+		}
+		if answers[i].IsCorrect != nil {
+			answerCorrect[answers[i].QuestionID] = *answers[i].IsCorrect
+			if *answers[i].IsCorrect {
+				correctCount++
+			} else {
+				incorrectCount++
+			}
 		}
 	}
 
@@ -685,14 +705,16 @@ func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
 	passed := percentage >= float64(test.PassingScore)
 
 	data := map[string]interface{}{
-		"Session":        session,
-		"Test":           test,
-		"Attempt":        attempt,
-		"Answers":        answerMap,
-		"Percentage":     percentage,
-		"Passed":         passed,
-		"CorrectCount":   correctCount,
-		"IncorrectCount": incorrectCount,
+		"Session":         session,
+		"Test":            test,
+		"Attempt":         attempt,
+		"Answers":         answerMap,
+		"SelectedOptions": selectedOptions,
+		"AnswerCorrect":   answerCorrect,
+		"Percentage":      percentage,
+		"Passed":          passed,
+		"CorrectCount":    correctCount,
+		"IncorrectCount":  incorrectCount,
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{

@@ -69,12 +69,10 @@
                     <img src="{{$question.ImageURL}}" alt="Question image" class="mt-2 max-w-md rounded border">
                     {{end}}
                 </div>
-                {{if $answer}}
-                    {{if $answer.IsCorrect}}
+                {{if index $.AnswerCorrect $question.ID}}
                     <span class="text-2xl">✅</span>
-                    {{else}}
+                {{else if index $.SelectedOptions $question.ID}}
                     <span class="text-2xl">❌</span>
-                    {{end}}
                 {{end}}
             </div>
             
@@ -82,7 +80,7 @@
                 {{range $option := $question.Options}}
                 <div class="p-3 border-2 rounded-lg
                     {{if $option.IsCorrect}}border-green-500 bg-green-50
-                    {{else if and $answer $answer.SelectedOptionID (eqPtr $answer.SelectedOptionID $option.ID)}}border-red-500 bg-red-50
+                    {{else if eq (index $.SelectedOptions $question.ID) $option.ID}}border-red-500 bg-red-50
                     {{else}}border-gray-200{{end}}">
                     <div class="flex items-center justify-between">
                         <span class="flex-grow {{if $option.IsCorrect}}font-semibold text-green-800{{end}}">
@@ -90,7 +88,7 @@
                         </span>
                         {{if $option.IsCorrect}}
                         <span class="text-green-600 font-semibold">✓ Correct Answer</span>
-                        {{else if and $answer $answer.SelectedOptionID (eqPtr $answer.SelectedOptionID $option.ID)}}
+                        {{else if eq (index $.SelectedOptions $question.ID) $option.ID}}
                         <span class="text-red-600 font-semibold">✗ Your Answer</span>
                         {{end}}
                     </div>
