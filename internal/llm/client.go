@@ -86,11 +86,11 @@ func (c *Client) GenerateQuestions(ctx context.Context, notesText string, cfg Ge
 
 // ── OCI GenAI REST call ──────────────────────────────────────────────
 
-// ociGenerateRequest is the request body for the OCI GenerateText action.
-type ociGenerateRequest struct {
-	CompartmentID    string              `json:"compartmentId"`
-	ServingMode      ociServingMode      `json:"servingMode"`
-	InferenceRequest ociInferenceRequest `json:"inferenceRequest"`
+// ociChatRequest is the request body for the OCI GenAI Chat action.
+type ociChatRequest struct {
+	CompartmentID string               `json:"compartmentId"`
+	ServingMode   ociServingMode       `json:"servingMode"`
+	ChatRequest   ociCohereChatRequest `json:"chatRequest"`
 }
 
 type ociServingMode struct {
@@ -98,41 +98,31 @@ type ociServingMode struct {
 	ModelID     string `json:"modelId"`
 }
 
-type ociInferenceRequest struct {
-	RuntimeType string  `json:"runtimeType"`
-	Prompt      string  `json:"prompt"`
+type ociCohereChatRequest struct {
+	APIFormat   string  `json:"apiFormat"`
+	Message     string  `json:"message"`
 	MaxTokens   int     `json:"maxTokens"`
 	Temperature float64 `json:"temperature"`
 }
 
-// ociGenerateResponse is a minimal representation of the API response.
-type ociGenerateResponse struct {
-	InferenceResponse struct {
-		GeneratedTexts [][]struct {
-			Text string `json:"text"`
-		} `json:"generatedTexts"`
-		// For chat-style models
-		Choices []struct {
-			Message struct {
-				Content []struct {
-					Text string `json:"text"`
-				} `json:"content"`
-			} `json:"message"`
-			Text string `json:"text"`
-		} `json:"choices"`
-	} `json:"inferenceResponse"`
+// ociChatResponse is a minimal representation of the chat API response.
+type ociChatResponse struct {
+	ChatResponse struct {
+		APIFormat string `json:"apiFormat"`
+		Text      string `json:"text"`
+	} `json:"chatResponse"`
 }
 
 func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, error) {
-	reqBody := ociGenerateRequest{
+	reqBody := ociChatRequest{
 		CompartmentID: c.cfg.CompartmentID,
 		ServingMode: ociServingMode{
 			ServingType: "ON_DEMAND",
 			ModelID:     c.cfg.ModelID,
 		},
-		InferenceRequest: ociInferenceRequest{
-			RuntimeType: "COHERE",
-			Prompt:      prompt,
+		ChatRequest: ociCohereChatRequest{
+			APIFormat:   "COHERE",
+			Message:     prompt,
 			MaxTokens:   c.cfg.MaxTokens,
 			Temperature: c.cfg.Temperature,
 		},
@@ -143,7 +133,7 @@ func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, e
 		return "", err
 	}
 
-	url := c.cfg.Endpoint + "/20231130/actions/generateText"
+	url := c.cfg.Endpoint + "/20231130/actions/chat"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return "", err
@@ -169,25 +159,16 @@ func (c *Client) callGenerateText(ctx context.Context, prompt string) (string, e
 		return "", fmt.Errorf("OCI API returned %d: %s", resp.StatusCode, string(respBytes))
 	}
 
-	var ociResp ociGenerateResponse
+	var ociResp ociChatResponse
 	if err := json.Unmarshal(respBytes, &ociResp); err != nil {
 		return "", fmt.Errorf("decode OCI response: %w", err)
 	}
 
-	// Extract text from the response — handle both Cohere and chat-style formats
-	if texts := ociResp.InferenceResponse.GeneratedTexts; len(texts) > 0 && len(texts[0]) > 0 {
-		return texts[0][0].Text, nil
-	}
-	if choices := ociResp.InferenceResponse.Choices; len(choices) > 0 {
-		if choices[0].Text != "" {
-			return choices[0].Text, nil
-		}
-		if len(choices[0].Message.Content) > 0 {
-			return choices[0].Message.Content[0].Text, nil
-		}
+	if ociResp.ChatResponse.Text == "" {
+		return "", fmt.Errorf("empty response from OCI GenAI")
 	}
 
-	return "", fmt.Errorf("empty response from OCI GenAI")
+	return ociResp.ChatResponse.Text, nil
 }
 
 // ── OCI HTTP Signature Auth ──────────────────────────────────────────
