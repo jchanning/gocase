@@ -16,9 +16,10 @@ import (
 
 // TestHandler handles test-related requests
 type TestHandler struct {
-	testRepo    *repository.TestRepository
-	attemptRepo *repository.AttemptRepository
-	userRepo    *repository.UserRepository
+	testRepo       *repository.TestRepository
+	attemptRepo    *repository.AttemptRepository
+	userRepo       *repository.UserRepository
+	assignmentRepo *repository.AssignmentRepository
 }
 
 // testFilters captures query parameters for filtering available tests.
@@ -42,11 +43,12 @@ type historyFilters struct {
 }
 
 // NewTestHandler creates a new test handler
-func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository, userRepo *repository.UserRepository) *TestHandler {
+func NewTestHandler(testRepo *repository.TestRepository, attemptRepo *repository.AttemptRepository, userRepo *repository.UserRepository, assignmentRepo *repository.AssignmentRepository) *TestHandler {
 	return &TestHandler{
-		testRepo:    testRepo,
-		attemptRepo: attemptRepo,
-		userRepo:    userRepo,
+		testRepo:       testRepo,
+		attemptRepo:    attemptRepo,
+		userRepo:       userRepo,
+		assignmentRepo: assignmentRepo,
 	}
 }
 
@@ -174,6 +176,10 @@ func parseTestFilters(r *http.Request) testFilters {
 			v := false
 			filters.Published = &v
 		}
+	} else {
+		// Default to showing only published tests when no filter is specified.
+		v := true
+		filters.Published = &v
 	}
 
 	return filters
@@ -222,6 +228,19 @@ func parseHistoryFilters(r *http.Request) historyFilters {
 	}
 
 	return filters
+}
+
+// nextDifficultyLevel returns the next difficulty tier above the given one.
+// Returns "" when there is no higher level (Hard) or when the input is unrecognised.
+func nextDifficultyLevel(current string) string {
+	switch strings.ToLower(current) {
+	case "easy":
+		return "Medium"
+	case "medium":
+		return "Hard"
+	default:
+		return ""
+	}
 }
 
 // filterTests applies the parsed filters to the in-memory list of tests.
@@ -527,6 +546,13 @@ func (h *TestHandler) SubmitTest(w http.ResponseWriter, r *http.Request) {
 
 	h.userRepo.UpdateUserStats(r.Context(), stats)
 
+	// Mark the assignment completed if one exists for this test.
+	if h.assignmentRepo != nil {
+		if err := h.assignmentRepo.MarkCompleted(r.Context(), session.UserID, attempt.TestID); err != nil {
+			log.Printf("Error marking assignment completed: %v", err)
+		}
+	}
+
 	// Redirect to results
 	http.Redirect(w, r, "/test/results?attempt_id="+attemptIDStr, http.StatusSeeOther)
 }
@@ -592,6 +618,17 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 
 	passed := percentage >= float64(test.PassingScore)
 
+	// Find a recommended next test when the student passed.
+	var recommendation *models.Test
+	if passed && test.SubjectID != nil {
+		if nextDiff := nextDifficultyLevel(test.Difficulty); nextDiff != "" {
+			rec, err := h.testRepo.GetRecommendation(r.Context(), *test.SubjectID, nextDiff, test.ID, session.UserID)
+			if err == nil {
+				recommendation = rec
+			}
+		}
+	}
+
 	data := map[string]interface{}{
 		"Session":         session,
 		"Test":            test,
@@ -601,6 +638,7 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 		"AnswerCorrect":   answerCorrect,
 		"Percentage":      percentage,
 		"Passed":          passed,
+		"Recommendation":  recommendation,
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{
