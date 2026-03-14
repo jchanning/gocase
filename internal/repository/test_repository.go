@@ -24,7 +24,8 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
 		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
-		       s.id, s.name, s.description
+		       s.id, s.name, s.description,
+		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
 		ORDER BY t.created_at DESC`
@@ -46,6 +47,7 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
 			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
+			&t.QuestionCount,
 		)
 		if err != nil {
 			return nil, err
@@ -365,7 +367,8 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
 		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
-		       s.id, s.name, s.description
+		       s.id, s.name, s.description,
+		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
 		WHERE t.created_by = $1
@@ -388,6 +391,7 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
 			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
+			&t.QuestionCount,
 		)
 		if err != nil {
 			return nil, err

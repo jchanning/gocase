@@ -99,6 +99,20 @@
         {{end}}
     </div>
 
+    {{if .Test.NotesFilename}}
+    <div class="app-card p-6 mt-6 bg-blue-50 border-l-4 border-blue-400">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+                <h3 class="text-lg font-bold text-blue-800 mb-1">📄 Study Notes Available</h3>
+                <p class="text-blue-700 text-sm">This test was based on notes. Review them to improve your understanding.</p>
+            </div>
+            <a href="/tests/{{.Test.ID}}/notes" target="_blank" class="btn btn-primary py-2 px-6 whitespace-nowrap">
+                View Notes
+            </a>
+        </div>
+    </div>
+    {{end}}
+
     <div class="mt-8 flex justify-center gap-4">
         <a href="/tests" class="btn btn-primary py-3 px-6">
             Back to Tests

@@ -98,6 +98,15 @@ func persistTestUpload(ctx context.Context, repo *repository.TestRepository, upl
 		return nil, err
 	}
 
+	// Link the notes file to the test if one was provided
+	if upload.NotesFilename != "" {
+		filename := upload.NotesFilename
+		if err := repo.UpdateTestNotes(ctx, test.ID, &filename); err != nil {
+			return nil, err
+		}
+		test.NotesFilename = &filename
+	}
+
 	for i, q := range upload.Questions {
 		question := &models.Question{
 			TestID:        test.ID,

@@ -54,9 +54,10 @@ type Test struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 
 	// Related data (not in DB, populated via joins)
-	Subject   *Subject   `json:"subject,omitempty"`
-	Topic     *Topic     `json:"topic,omitempty"`
-	Questions []Question `json:"questions,omitempty"`
+	Subject       *Subject   `json:"subject,omitempty"`
+	Topic         *Topic     `json:"topic,omitempty"`
+	Questions     []Question `json:"questions,omitempty"`
+	QuestionCount int        `json:"question_count,omitempty"`
 }
 
 // Question represents a single question in a test
@@ -161,6 +162,7 @@ type TestUpload struct {
 	TimeLimitMinutes int              `json:"time_limit_minutes"`
 	PassingScore     int              `json:"passing_score"`
 	Questions        []QuestionUpload `json:"questions"`
+	NotesFilename    string           `json:"notes_filename,omitempty"`
 }
 
 // QuestionUpload represents a question for upload

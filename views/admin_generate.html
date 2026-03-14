@@ -220,6 +220,7 @@
 
             if (result.success) {
                 generatedTest = result.test;
+                generatedTest._sourceFilename = result.source_filename || '';
                 renderQuestions(result.test.questions);
                 step2.classList.remove('hidden');
                 step2.scrollIntoView({ behavior: 'smooth' });
@@ -342,7 +343,8 @@
             difficulty: generatedTest.difficulty,
             time_limit_minutes: generatedTest.time_limit_minutes,
             passing_score: generatedTest.passing_score,
-            questions: questions
+            questions: questions,
+            notes_filename: generatedTest._sourceFilename || ''
         };
 
         const saveStatus = document.getElementById('saveStatus');
