@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"my-app/internal/auth"
-	"my-app/internal/docparse"
-	"my-app/internal/llm"
-	"my-app/internal/models"
-	"my-app/internal/repository"
-	"my-app/internal/storage"
+	"github.com/jchanning/gocase/internal/auth"
+	"github.com/jchanning/gocase/internal/docparse"
+	"github.com/jchanning/gocase/internal/llm"
+	"github.com/jchanning/gocase/internal/models"
+	"github.com/jchanning/gocase/internal/repository"
+	"github.com/jchanning/gocase/internal/storage"
 
 	"golang.org/x/crypto/bcrypt"
 )

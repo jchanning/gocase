@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"my-app/internal/models"
-	"my-app/internal/repository"
-	"my-app/internal/validation"
+	"github.com/jchanning/gocase/internal/models"
+	"github.com/jchanning/gocase/internal/repository"
+	"github.com/jchanning/gocase/internal/validation"
 )
 
 // validateTestUpload runs server-side validation for incoming test data before DB writes.

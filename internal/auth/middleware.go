@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"my-app/internal/version"
+	"github.com/jchanning/gocase/internal/version"
 )
 
 type contextKey string

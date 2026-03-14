@@ -1,0 +1,45 @@
+# GoCaSE — AI Context Filter
+# Prevents the AI from indexing irrelevant files, saving tokens and improving accuracy.
+
+# ── Compiled binaries in root ──────────────────────────────────────────────────
+*.exe
+gocase
+gocase-test
+gocase-server.exe
+
+# ── Go dependency lock file (large, machine-generated) ────────────────────────
+go.sum
+
+# ── Uploaded user content (never index user data) ─────────────────────────────
+uploads/
+storage/uploads/
+internal/storage/uploads/
+
+# ── Static assets & screenshots ───────────────────────────────────────────────
+assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.pdf
+*.pptx
+*.docx
+
+# ── Playwright MCP screenshots ────────────────────────────────────────────────
+.playwright-mcp/
+
+# ── Sample/test data files ────────────────────────────────────────────────────
+sample_tests/
+test-upload.json
+
+# ── Git internals ─────────────────────────────────────────────────────────────
+.git/
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+
+# ── Notes/playbook reference material (not source code) ──────────────────────
+uploads/notes/

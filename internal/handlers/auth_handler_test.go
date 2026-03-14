@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"my-app/internal/auth"
+	"github.com/jchanning/gocase/internal/auth"
 )
 
 // Ensures non-admin users cannot register teacher/admin roles.

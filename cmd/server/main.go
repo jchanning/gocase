@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"my-app/internal/database"
-	"my-app/internal/llm"
-	"my-app/internal/server"
+	"github.com/jchanning/gocase/internal/database"
+	"github.com/jchanning/gocase/internal/llm"
+	"github.com/jchanning/gocase/internal/server"
 )
 
 func main() {

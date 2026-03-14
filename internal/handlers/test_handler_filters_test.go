@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 func TestFilterTests_AppliesAllFilters(t *testing.T) {

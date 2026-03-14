@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 // Ensures admin user management template renders successfully with sample data.

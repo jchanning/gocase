@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"my-app/internal/auth"
-	"my-app/internal/models"
-	"my-app/internal/repository"
-	"my-app/internal/validation"
+	"github.com/jchanning/gocase/internal/auth"
+	"github.com/jchanning/gocase/internal/models"
+	"github.com/jchanning/gocase/internal/repository"
+	"github.com/jchanning/gocase/internal/validation"
 )
 
 // TeacherHandler handles teacher requests

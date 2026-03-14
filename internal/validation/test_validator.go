@@ -3,7 +3,7 @@ package validation
 import (
 	"fmt"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 // ValidationError represents a validation error

@@ -5,11 +5,11 @@ import (
 	"log"
 	"net/http"
 
-	"my-app/internal/auth"
-	"my-app/internal/database"
-	"my-app/internal/handlers"
-	"my-app/internal/llm"
-	"my-app/internal/repository"
+	"github.com/jchanning/gocase/internal/auth"
+	"github.com/jchanning/gocase/internal/database"
+	"github.com/jchanning/gocase/internal/handlers"
+	"github.com/jchanning/gocase/internal/llm"
+	"github.com/jchanning/gocase/internal/repository"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

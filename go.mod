@@ -1,4 +1,4 @@
-module my-app
+module github.com/jchanning/gocase
 
 go 1.25
 

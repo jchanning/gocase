@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 // GenerateConfig controls the question generation request.

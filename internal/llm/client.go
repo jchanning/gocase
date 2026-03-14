@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 // QuestionGenerator is the interface for generating questions from text.

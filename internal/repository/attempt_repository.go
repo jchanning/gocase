@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

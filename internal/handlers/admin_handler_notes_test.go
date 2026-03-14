@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"my-app/internal/models"
+	"github.com/jchanning/gocase/internal/models"
 )
 
 // TestUpdateTestWithNotes tests the notes upload functionality

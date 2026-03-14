@@ -1,0 +1,44 @@
+---
+description: Go source file conventions for GoCaSE. Apply when writing or reviewing Go files.
+globs: ["**/*.go"]
+---
+
+# Go Coding Rules — GoCaSE
+
+## Package Structure
+- `internal/handlers/` — HTTP handlers only (parse request, call repo, render template)
+- `internal/repository/` — all database queries; no business logic
+- `internal/models/` — plain data structs; no methods with side effects
+- `internal/auth/` — session management and middleware only
+- `internal/validation/` — input validation helpers
+- `internal/llm/` — OCI GenAI client and prompt construction
+
+## Style
+- Use early returns to reduce nesting; prefer `if err != nil { return }` over nested ifs
+- Keep functions under ~50 lines; split larger functions with clear single responsibility
+- Exported functions need a comment; unexported functions only if non-obvious
+- Use `context.Context` as first argument in all repository methods
+- Name errors `err`, database rows `rows`, and loop variables with their type prefix (e.g. `test`, `user`)
+
+## Database / Repository
+- All queries must use parameterized arguments — NEVER string-interpolate SQL
+- Use `pgx/v5` scan patterns with explicit column lists — no `SELECT *`
+- Repository methods return `(value, error)` — never log inside repository
+- Close rows with `defer rows.Close()` immediately after err check
+
+## HTTP Handlers
+- Read form values with `r.FormValue("field")` for POST, `r.URL.Query().Get("field")` for GET
+- Always check session via `auth.GetSession(r)` before accessing user-specific data
+- Render templates with `views.Render(w, r, "template_name.html", data)` pattern
+- Return HTTP errors with `http.Error(w, message, statusCode)` — never panic
+
+## Error Handling
+- Wrap errors with context: `fmt.Errorf("doing X: %w", err)`
+- Log errors at the handler boundary only, not in repository or service layer
+- Database "not found" should return `nil, nil` (not an error) from repositories
+
+## Security
+- Hash passwords with `bcrypt` — minimum cost 12
+- Session tokens must be cryptographically random (use `crypto/rand`)
+- All user-supplied filenames must be sanitized before filesystem use
+- Role checks must use `auth.RequireRole(r, "admin")` middleware — never inline string comparison
