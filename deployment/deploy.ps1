@@ -76,6 +76,13 @@ Write-Host "  Project root: $PROJECT_ROOT"
 $TMP_TAR = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "gocase-deploy.tar.gz")
 Write-Host "  Creating archive: $TMP_TAR"
 
+# Resolve version from git tag (e.g. v0.1.0 -> 0.1.0), falling back to short SHA.
+$BUILD_VERSION = (git -C $PROJECT_ROOT describe --tags --exact-match 2>$null) -replace '^v',''
+if (-not $BUILD_VERSION) {
+    $BUILD_VERSION = "0.0.0-$(git -C $PROJECT_ROOT rev-parse --short HEAD)"
+}
+Write-Host "  Version: $BUILD_VERSION" -ForegroundColor Cyan
+
 # Use git archive to read directly from git's object store, avoiding
 # OneDrive Files-On-Demand permission issues with plain tar.
 Push-Location $PROJECT_ROOT
@@ -109,7 +116,7 @@ if ($DBOnly) {
     Invoke-SSH "cd $REMOTE_DIR && $COMPOSE -f $COMPOSE_FILE up -d db"
 } else {
     Write-Host "`n=== Building and starting all services ===" -ForegroundColor Cyan
-    Invoke-SSH "cd $REMOTE_DIR && $COMPOSE -f $COMPOSE_FILE build --no-cache app"
+    Invoke-SSH "cd $REMOTE_DIR && $COMPOSE -f $COMPOSE_FILE build --no-cache --build-arg BUILD_VERSION=$BUILD_VERSION app"
     Invoke-SSH "cd $REMOTE_DIR && $COMPOSE -f $COMPOSE_FILE --env-file .env.production up -d"
 }
 

@@ -24,6 +24,7 @@ services:
       dockerfile: Dockerfile
       args:
         TARGETARCH: arm64
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     container_name: gocase-app
     # Bind to loopback only — nginx proxies from outside
     ports:
