@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="max-w-5xl mx-auto">
     <!-- Header -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="app-card p-6 mb-6">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">Test Paper Review</h1>
@@ -43,7 +43,7 @@
     <div class="space-y-6">
         {{range $index, $question := .Test.Questions}}
         {{$answer := index $.Answers $question.ID}}
-        <div class="bg-white rounded-lg shadow-md p-6 {{if $answer}}{{if $answer.IsCorrect}}border-l-4 border-green-500{{else}}border-l-4 border-red-500{{end}}{{end}}">
+        <div class="app-card p-6 {{if $answer}}{{if $answer.IsCorrect}}border-l-4 border-green-500{{else}}border-l-4 border-red-500{{end}}{{end}}">
             <!-- Question Header -->
             <div class="flex items-start mb-4">
                 <span class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg mr-4 flex-shrink-0">
@@ -132,13 +132,13 @@
 
     <!-- Navigation Buttons -->
     <div class="mt-8 mb-6 flex justify-center gap-4">
-        <a href="/test/results?attempt_id={{.Attempt.ID}}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/test/results?attempt_id={{.Attempt.ID}}" class="btn btn-secondary py-3 px-6">
             ← Back to Results
         </a>
-        <a href="/test/start?id={{.Test.ID}}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/test/start?id={{.Test.ID}}" class="btn btn-accent py-3 px-6">
             🔄 Retake Test
         </a>
-        <a href="/tests" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/tests" class="btn btn-primary py-3 px-6">
             📚 Browse Tests
         </a>
     </div>

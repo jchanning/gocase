@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"my-app/internal/auth"
+	"my-app/internal/docparse"
+	"my-app/internal/llm"
 	"my-app/internal/models"
 	"my-app/internal/repository"
 	"my-app/internal/storage"
@@ -20,15 +22,17 @@ import (
 
 // AdminHandler handles admin/teacher requests
 type AdminHandler struct {
-	testRepo *repository.TestRepository
-	userRepo *repository.UserRepository
+	testRepo  *repository.TestRepository
+	userRepo  *repository.UserRepository
+	llmClient llm.QuestionGenerator
 }
 
 // NewAdminHandler creates a new admin handler
-func NewAdminHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository) *AdminHandler {
+func NewAdminHandler(testRepo *repository.TestRepository, userRepo *repository.UserRepository, llmClient llm.QuestionGenerator) *AdminHandler {
 	return &AdminHandler{
-		testRepo: testRepo,
-		userRepo: userRepo,
+		testRepo:  testRepo,
+		userRepo:  userRepo,
+		llmClient: llmClient,
 	}
 }
 
@@ -719,6 +723,138 @@ func (h *AdminHandler) ServeTestNotes(w http.ResponseWriter, r *http.Request) {
 	// Serve file inline (not as download)
 	w.Header().Set("Content-Disposition", "inline")
 	http.ServeFile(w, r, filePath)
+}
+
+// ShowGenerate renders the "Generate from Notes" page.
+func (h *AdminHandler) ShowGenerate(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+
+	subjects, err := h.testRepo.GetSubjects(r.Context())
+	if err != nil {
+		log.Printf("Error fetching subjects: %v", err)
+		subjects = []models.Subject{}
+	}
+
+	data := map[string]interface{}{
+		"Session":       session,
+		"Subjects":      subjects,
+		"Difficulties":  models.ValidDifficulties,
+		"ExamStandards": models.ValidExamStandards,
+		"LLMAvailable":  h.llmClient != nil && h.llmClient.IsAvailable(),
+	}
+
+	tmpl, err := template.ParseFiles("views/layout.html", "views/admin_generate.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// GenerateFromNotes accepts a document upload, extracts text, calls the LLM,
+// and returns generated questions as JSON for the admin to review before saving.
+func (h *AdminHandler) GenerateFromNotes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.llmClient == nil || !h.llmClient.IsAvailable() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "LLM service is not configured. Set OCI GenAI environment variables.",
+		})
+		return
+	}
+
+	// Parse multipart form (30 MB max)
+	if err := r.ParseMultipartForm(30 << 20); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Failed to parse form data: " + err.Error(),
+		})
+		return
+	}
+
+	file, header, err := r.FormFile("document")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Document file is required.",
+		})
+		return
+	}
+	defer file.Close()
+
+	// Save to a temporary location for text extraction
+	storedName, err := storage.SaveNotesFile(file, header.Filename)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+	filePath := storage.GetNotesFilePath(storedName)
+
+	// Extract text
+	text, err := docparse.ExtractText(filePath)
+	if err != nil {
+		// Clean up stored file on extraction failure
+		storage.DeleteNotesFile(storedName)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Could not extract text: " + err.Error(),
+		})
+		return
+	}
+
+	// Build generation config from form fields
+	genCfg := llm.GenerateConfig{
+		Subject:      r.FormValue("subject"),
+		ExamStandard: r.FormValue("exam_standard"),
+		Difficulty:   r.FormValue("difficulty"),
+		NumQuestions: parseIntOrDefault(r.FormValue("num_questions"), 10),
+		Points:       parseIntOrDefault(r.FormValue("points"), 1),
+	}
+
+	// Call the LLM
+	questions, err := h.llmClient.GenerateQuestions(r.Context(), text, genCfg)
+	if err != nil {
+		log.Printf("LLM generation failed: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   "Question generation failed: " + err.Error(),
+		})
+		return
+	}
+
+	// Build a TestUpload for the frontend review form
+	testUpload := models.TestUpload{
+		Title:            r.FormValue("title"),
+		Description:      r.FormValue("description"),
+		Subject:          genCfg.Subject,
+		Topic:            r.FormValue("topic"),
+		ExamStandard:     genCfg.ExamStandard,
+		Difficulty:       genCfg.Difficulty,
+		TimeLimitMinutes: parseIntOrDefault(r.FormValue("time_limit_minutes"), 15),
+		PassingScore:     parseIntOrDefault(r.FormValue("passing_score"), 60),
+		Questions:        questions,
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":         true,
+		"test":            testUpload,
+		"source_filename": storedName,
+	})
 }
 
 // parseIntOrDefault parses a string as int or returns default

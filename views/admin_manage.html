@@ -1,20 +1,20 @@
 {{define "content"}}
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">System Management</h1>
+    <h1 class="page-title text-3xl mb-8">System Management</h1>
     
     <!-- Subjects Management -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="app-card p-6 mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Subjects Management</h2>
         
         <!-- Add New Subject Form -->
         <div class="mb-6">
             <h3 class="text-lg font-semibold mb-3">Add New Subject</h3>
-            <form hx-post="/admin/manage/subjects" hx-target="#subjects-list" hx-swap="beforeend" class="flex gap-4">
+            <form hx-post="/admin/manage/subjects" hx-target="#subjects-list" hx-swap="beforeend" class="flex flex-col md:flex-row gap-4">
                 <input type="text" name="name" placeholder="Subject Name" required
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="flex-1 app-input">
                 <input type="text" name="description" placeholder="Description"
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded">
+                       class="flex-1 app-input">
+                <button type="submit" class="btn btn-primary md:whitespace-nowrap">
                     Add Subject
                 </button>
             </form>
@@ -36,9 +36,9 @@
     </div>
     
     <!-- Difficulty Levels Management -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <div class="app-card p-6 mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Difficulty Levels</h2>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {{range $index, $difficulty := .Difficulties}}
             <div class="p-4 {{if eq $difficulty "Easy"}}bg-green-50 border-green-200{{else if eq $difficulty "Medium"}}bg-blue-50 border-blue-200{{else}}bg-orange-50 border-orange-200{{end}} border rounded text-center">
                 <div class="text-2xl mb-2">{{if eq $difficulty "Easy"}}🟢{{else if eq $difficulty "Medium"}}🔵{{else}}🟠{{end}}</div>
@@ -50,9 +50,9 @@
     </div>
     
     <!-- Exam Standards Management -->
-    <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="app-card p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Exam Standards</h2>
-        <div class="grid grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {{range $index, $standard := .ExamStandards}}
             <div class="p-4 {{if eq $standard "Primary"}}bg-blue-50 border-blue-200{{else if eq $standard "Secondary"}}bg-green-50 border-green-200{{else if eq $standard "GCSE"}}bg-purple-50 border-purple-200{{else if eq $standard "IGCSE"}}bg-pink-50 border-pink-200{{else}}bg-indigo-50 border-indigo-200{{end}} border rounded text-center">
                 <div class="font-semibold">{{$standard}}</div>
@@ -64,7 +64,7 @@
     </div>
     
     <div class="mt-8">
-        <a href="/admin" class="text-blue-600 hover:text-blue-800">← Back to Admin Dashboard</a>
+        <a href="/admin" class="btn btn-secondary">← Back to Admin Dashboard</a>
     </div>
 </div>
 {{end}}

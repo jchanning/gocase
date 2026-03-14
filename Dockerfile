@@ -16,9 +16,12 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application for ARM64
+# Build the application
 # CGO_ENABLED=0 ensures a static binary
-RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server/
+# TARGETARCH is set automatically by Docker buildx / --platform,
+# or override with --build-arg TARGETARCH=amd64
+ARG TARGETARCH=arm64
+RUN CGO_ENABLED=0 GOARCH=${TARGETARCH} GOOS=linux go build -ldflags="-w -s" -o /app/server ./cmd/server/
 
 # Final stage - using alpine for minimal image with shell access
 FROM alpine:latest

@@ -8,6 +8,7 @@ import (
 	"my-app/internal/auth"
 	"my-app/internal/database"
 	"my-app/internal/handlers"
+	"my-app/internal/llm"
 	"my-app/internal/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -22,7 +23,7 @@ type Server struct {
 }
 
 // NewServer creates and configures a new HTTP server.
-func NewServer(db *database.Service) *Server {
+func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	s := &Server{
 		db:           db,
 		router:       chi.NewRouter(),
@@ -45,7 +46,7 @@ func NewServer(db *database.Service) *Server {
 	authHandler := handlers.NewAuthHandler(userRepo, s.sessionStore)
 	dashboardHandler := handlers.NewDashboardHandler(userRepo, testRepo, attemptRepo)
 	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo)
-	adminHandler := handlers.NewAdminHandler(testRepo, userRepo)
+	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
 	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo)
 
 	// Initialize auth middleware
@@ -101,6 +102,8 @@ func NewServer(db *database.Service) *Server {
 			// Admin-only routes
 			r.Group(func(r chi.Router) {
 				r.Use(authMiddleware.RequireRole("admin"))
+				r.Get("/admin/generate", adminHandler.ShowGenerate)
+				r.Post("/admin/generate", adminHandler.GenerateFromNotes)
 				r.Get("/admin/manage", adminHandler.ShowManagement)
 				r.Post("/admin/manage/subjects", adminHandler.CreateSubject)
 				r.Delete("/admin/manage/subjects/{id}", adminHandler.DeleteSubject)

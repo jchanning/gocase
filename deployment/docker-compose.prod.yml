@@ -1,0 +1,53 @@
+services:
+  # PostgreSQL Database — internal only, no host port exposed
+  db:
+    image: postgres:14-alpine
+    container_name: gocase-db
+    environment:
+      POSTGRES_DB: gocase
+      POSTGRES_USER: gocase
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./internal/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gocase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # GoCaSE Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TARGETARCH: arm64
+    container_name: gocase-app
+    # Bind to loopback only — nginx proxies from outside
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      DATABASE_URL: postgres://gocase:${DB_PASSWORD}@db:5432/gocase?sslmode=disable
+      # OCI Generative AI (for "Generate from Notes" feature)
+      OCI_TENANCY_OCID: ${OCI_TENANCY_OCID}
+      OCI_USER_OCID: ${OCI_USER_OCID}
+      OCI_FINGERPRINT: ${OCI_FINGERPRINT}
+      OCI_PRIVATE_KEY_PATH: /app/oci_api_key.pem
+      OCI_REGION: ${OCI_REGION}
+      OCI_COMPARTMENT_ID: ${OCI_COMPARTMENT_ID}
+      OCI_GENAI_MODEL_ID: ${OCI_GENAI_MODEL_ID:-cohere.command-r-plus}
+    volumes:
+      # Uploaded notes documents — persisted outside the container
+      - /home/opc/gocase-data/uploads:/app/uploads
+      # OCI API private key — read-only mount
+      - /home/opc/gocase-data/oci_api_key.pem:/app/oci_api_key.pem:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local

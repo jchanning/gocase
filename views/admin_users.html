@@ -1,34 +1,34 @@
 {{define "content"}}
 <div class="container mx-auto py-8 px-4">
-    <h1 class="text-3xl font-bold mb-6">User Management</h1>
+    <h1 class="page-title text-3xl mb-6">User Management</h1>
     
     <!-- Create User Section -->
-    <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="app-card p-6 mb-6">
         <h2 class="text-xl font-semibold mb-4">Create New User</h2>
         
         <form id="create-user-form" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email*</label>
                 <input type="email" id="email" name="email" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    class="mt-1 app-input">
             </div>
             
             <div>
                 <label for="username" class="block text-sm font-medium text-gray-700">Username*</label>
                 <input type="text" id="username" name="username" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    class="mt-1 app-input">
             </div>
             
             <div>
                 <label for="password" class="block text-sm font-medium text-gray-700">Password*</label>
                 <input type="password" id="password" name="password" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    class="mt-1 app-input">
             </div>
             
             <div>
                 <label for="role" class="block text-sm font-medium text-gray-700">Role*</label>
                 <select id="role" name="role" required
-                    class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2">
+                    class="mt-1 app-input">
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>
                     <option value="admin">Admin</option>
@@ -36,7 +36,7 @@
             </div>
             
             <div class="flex items-end">
-                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                <button type="submit" class="w-full btn btn-accent">
                     Create User
                 </button>
             </div>
@@ -44,7 +44,7 @@
     </div>
     
     <!-- Users Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="app-card overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -62,7 +62,7 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{.Username}}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <form method="POST" action="/admin/users/{{.ID}}/role" class="inline-flex gap-2">
-                            <select name="role" onchange="updateRole(this, {{.ID}})" 
+                            <select name="role" title="Select user role" onchange="updateRole(this, {{.ID}})" 
                                 class="rounded-md border border-gray-300 text-sm px-2 py-1">
                                 <option value="student" {{if eq .Role "student"}}selected{{end}}>Student</option>
                                 <option value="teacher" {{if eq .Role "teacher"}}selected{{end}}>Teacher</option>

@@ -1,14 +1,14 @@
 {{define "content"}}
 <div class="mb-8">
-    <h2 class="text-3xl font-bold text-gray-800 mb-2">Test Creation Wizard</h2>
-    <p class="text-gray-600">Guide through adding test details and questions.</p>
+    <h2 class="page-title text-3xl mb-2">Test Creation Wizard</h2>
+    <p class="page-subtitle">Guide through adding test details and questions.</p>
 </div>
 
-<div class="bg-white rounded-lg shadow-md p-6" id="wizard-root">
+<div class="app-card p-6" id="wizard-root">
     <div class="flex items-center gap-2 mb-4 text-sm text-gray-600">
         <span class="font-semibold" id="step-label">Step 1 of 2</span>
         <div class="flex-1 h-2 bg-gray-100 rounded">
-            <div id="step-progress" class="h-2 bg-blue-600 rounded" style="width: 50%"></div>
+            <div id="step-progress" class="h-2 bg-blue-600 rounded w-1/2"></div>
         </div>
     </div>
 
@@ -16,12 +16,12 @@
         <section data-step="1" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Title*</label>
-                    <input name="title" class="w-full border rounded px-3 py-2" placeholder="e.g., Algebra Fundamentals" required>
+                    <label for="wiz-title" class="block text-sm text-gray-700 mb-1">Title*</label>
+                    <input id="wiz-title" name="title" class="app-input" placeholder="e.g., Algebra Fundamentals" required>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Subject*</label>
-                    <select name="subject" class="w-full border rounded px-3 py-2" required>
+                    <label for="wiz-subject" class="block text-sm text-gray-700 mb-1">Subject*</label>
+                    <select id="wiz-subject" name="subject" class="app-input" required>
                         <option value="">Select subject</option>
                         {{range .Subjects}}
                         <option value="{{.Name}}">{{.Name}}</option>
@@ -30,13 +30,13 @@
                 </div>
             </div>
             <div>
-                <label class="block text-sm text-gray-700 mb-1">Description*</label>
-                <textarea name="description" rows="3" class="w-full border rounded px-3 py-2" required></textarea>
+                <label for="wiz-description" class="block text-sm text-gray-700 mb-1">Description*</label>
+                <textarea id="wiz-description" name="description" rows="3" class="app-input" required></textarea>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Difficulty*</label>
-                    <select name="difficulty" class="w-full border rounded px-3 py-2" required>
+                    <label for="wiz-difficulty" class="block text-sm text-gray-700 mb-1">Difficulty*</label>
+                    <select id="wiz-difficulty" name="difficulty" class="app-input" required>
                         <option value="">Select difficulty</option>
                         <option value="Easy">Easy</option>
                         <option value="Medium">Medium</option>
@@ -44,8 +44,8 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Standard*</label>
-                    <select name="exam_standard" class="w-full border rounded px-3 py-2" required>
+                    <label for="wiz-standard" class="block text-sm text-gray-700 mb-1">Standard*</label>
+                    <select id="wiz-standard" name="exam_standard" class="app-input" required>
                         <option value="">Select standard</option>
                         <option value="Primary">Primary</option>
                         <option value="Secondary">Secondary</option>
@@ -56,12 +56,12 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Time Limit (minutes)*</label>
-                    <input type="number" name="time_limit_minutes" class="w-full border rounded px-3 py-2" value="10" min="1" required>
+                    <label for="wiz-time" class="block text-sm text-gray-700 mb-1">Time Limit (minutes)*</label>
+                    <input id="wiz-time" type="number" name="time_limit_minutes" class="app-input" value="10" min="1" required>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1">Passing Score (%)*</label>
-                    <input type="number" name="passing_score" class="w-full border rounded px-3 py-2" value="60" min="0" max="100" required>
+                    <label for="wiz-pass" class="block text-sm text-gray-700 mb-1">Passing Score (%)*</label>
+                    <input id="wiz-pass" type="number" name="passing_score" class="app-input" value="60" min="0" max="100" required>
                 </div>
             </div>
         </section>
@@ -69,17 +69,17 @@
         <section data-step="2" class="hidden space-y-4">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold">Questions</h3>
-                <button type="button" id="add-question" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">+ Add Question</button>
+                <button type="button" id="add-question" class="btn btn-accent">+ Add Question</button>
             </div>
             <div id="questions" class="space-y-4"></div>
         </section>
 
-        <div class="flex justify-between pt-2 border-t">
-            <button type="button" id="prev-step" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded" disabled>Previous</button>
-            <div class="flex gap-2">
+        <div class="flex flex-col gap-3 md:flex-row md:justify-between pt-2 border-t">
+            <button type="button" id="prev-step" class="btn btn-secondary self-start" disabled>Previous</button>
+            <div class="flex flex-wrap gap-2 md:items-center">
                 <span id="wizard-error" class="text-red-600 text-sm"></span>
-                <button type="button" id="next-step" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Next</button>
-                <button type="submit" id="submit-wizard" class="hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Create Test</button>
+                <button type="button" id="next-step" class="btn btn-primary">Next</button>
+                <button type="submit" id="submit-wizard" class="hidden btn btn-primary">Create Test</button>
             </div>
         </div>
     </form>
@@ -114,20 +114,20 @@
     function addQuestion() {
         const idx = questionsEl.children.length + 1;
         const wrapper = document.createElement('div');
-        wrapper.className = 'border rounded p-4';
+        wrapper.className = 'app-card p-4';
         wrapper.innerHTML = `
             <div class="flex justify-between items-center mb-2">
                 <h4 class="font-semibold">Question ${idx}</h4>
-                <button type="button" class="text-red-600" onclick="this.closest('div.border').remove(); renumberQuestions();">Remove</button>
+                <button type="button" class="text-red-600" onclick="this.closest('div.app-card').remove(); renumberQuestions();">Remove</button>
             </div>
             <div class="space-y-2">
-                <input name="question_${idx}_text" placeholder="Question text" class="w-full border rounded px-3 py-2">
-                <input type="number" name="question_${idx}_points" value="1" min="1" class="w-full border rounded px-3 py-2">
+                <input name="question_${idx}_text" placeholder="Question text" class="app-input">
+                <input type="number" name="question_${idx}_points" value="1" min="1" class="app-input">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     ${[1,2,3,4].map(n => `
-                        <label class="flex items-center gap-2 border rounded px-2 py-1">
+                        <label class="flex items-center gap-2 border border-gray-300 rounded px-2 py-1 bg-gray-50">
                             <input type="radio" name="question_${idx}_correct" value="${n-1}">
-                            <input name="question_${idx}_option_${n}" class="flex-1 border rounded px-2 py-1" placeholder="Option ${n}">
+                            <input name="question_${idx}_option_${n}" class="flex-1 app-input py-1" placeholder="Option ${n}">
                             <span class="text-xs text-gray-600">Correct</span>
                         </label>
                     `).join('')}
@@ -147,6 +147,10 @@
                 parts[1] = qIdx.toString();
                 input.name = parts.join('_');
             });
+            const removeButton = card.querySelector('button.text-red-600');
+            if (removeButton) {
+                removeButton.setAttribute('onclick', "this.closest('div.app-card').remove(); renumberQuestions();");
+            }
         });
     };
 

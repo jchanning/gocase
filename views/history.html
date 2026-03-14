@@ -1,43 +1,43 @@
 {{define "content"}}
 <div class="mb-8">
-    <h2 class="text-3xl font-bold text-gray-800 mb-2">Test History</h2>
-    <p class="text-gray-600">Review completed tests and filter by student, test, date, or score.</p>
+    <h2 class="page-title text-3xl mb-2">Test History</h2>
+    <p class="page-subtitle">Review completed tests and filter by student, test, date, or score.</p>
 </div>
 
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+<div class="app-card p-6 mb-6">
     <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Student</label>
-            <input name="student" value="{{.Filters.StudentName}}" class="w-full border rounded px-3 py-2" placeholder="Name contains" {{if eq .Session.Role "student"}}disabled{{end}}>
+            <label for="history-student" class="block text-sm text-gray-600 mb-1">Student</label>
+            <input id="history-student" name="student" value="{{.Filters.StudentName}}" class="app-input" placeholder="Name contains" {{if eq .Session.Role "student"}}disabled{{end}}>
         </div>
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Test</label>
-            <input name="test" value="{{.Filters.TestName}}" class="w-full border rounded px-3 py-2" placeholder="Title contains">
+            <label for="history-test" class="block text-sm text-gray-600 mb-1">Test</label>
+            <input id="history-test" name="test" value="{{.Filters.TestName}}" class="app-input" placeholder="Title contains">
         </div>
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Date From</label>
-            <input type="date" name="date_from" value="{{if .Filters.DateFrom}}{{.Filters.DateFrom.Format "2006-01-02"}}{{end}}" class="w-full border rounded px-3 py-2">
+            <label for="history-date-from" class="block text-sm text-gray-600 mb-1">Date From</label>
+            <input id="history-date-from" type="date" name="date_from" value="{{if .Filters.DateFrom}}{{.Filters.DateFrom.Format "2006-01-02"}}{{end}}" class="app-input">
         </div>
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Date To</label>
-            <input type="date" name="date_to" value="{{if .Filters.DateTo}}{{.Filters.DateTo.Format "2006-01-02"}}{{end}}" class="w-full border rounded px-3 py-2">
+            <label for="history-date-to" class="block text-sm text-gray-600 mb-1">Date To</label>
+            <input id="history-date-to" type="date" name="date_to" value="{{if .Filters.DateTo}}{{.Filters.DateTo.Format "2006-01-02"}}{{end}}" class="app-input">
         </div>
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Min Score</label>
-            <input type="number" name="score_min" value="{{if .Filters.ScoreMin}}{{.Filters.ScoreMin}}{{end}}" class="w-full border rounded px-3 py-2" min="0" max="100">
+            <label for="history-score-min" class="block text-sm text-gray-600 mb-1">Min Score</label>
+            <input id="history-score-min" type="number" name="score_min" value="{{if .Filters.ScoreMin}}{{.Filters.ScoreMin}}{{end}}" class="app-input" min="0" max="100">
         </div>
         <div>
-            <label class="block text-sm text-gray-600 mb-1">Max Score</label>
-            <input type="number" name="score_max" value="{{if .Filters.ScoreMax}}{{.Filters.ScoreMax}}{{end}}" class="w-full border rounded px-3 py-2" min="0" max="100">
+            <label for="history-score-max" class="block text-sm text-gray-600 mb-1">Max Score</label>
+            <input id="history-score-max" type="number" name="score_max" value="{{if .Filters.ScoreMax}}{{.Filters.ScoreMax}}{{end}}" class="app-input" min="0" max="100">
         </div>
         <div class="md:col-span-6 flex gap-2 justify-end">
-            <a href="/history" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">Reset</a>
-            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Apply Filters</button>
+            <a href="/history" class="btn btn-secondary">Reset</a>
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
         </div>
     </form>
 </div>
 
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
+<div class="app-card overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead class="bg-gray-50">

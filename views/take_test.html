@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="max-w-4xl mx-auto">
     <!-- Test Header -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="app-card p-6 mb-6">
         <div class="flex justify-between items-start">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">{{.Test.Title}}</h2>
@@ -28,7 +28,7 @@
         <input type="hidden" name="attempt_id" value="{{.Attempt.ID}}">
         
         {{range $index, $question := .Test.Questions}}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-4">
+        <div class="app-card p-6 mb-4">
             <div class="flex items-start mb-4">
                 <span class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0">
                     {{add $index 1}}
@@ -60,13 +60,13 @@
         </div>
         {{end}}
         
-        <div class="bg-white rounded-lg shadow-md p-6 sticky bottom-4">
+        <div class="app-card p-6 sticky bottom-4">
             <div class="flex justify-between items-center">
                 <p class="text-gray-600">
                     <span id="answeredCount">0</span> of {{len .Test.Questions}} questions answered
                 </p>
                 <button type="submit" 
-                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200">
+                        class="btn btn-accent py-3 px-8">
                     Submit Test
                 </button>
             </div>
@@ -76,7 +76,7 @@
 
 <script>
 // Timer
-let timeLimit = {{.TimeLimit}};
+let timeLimit = Number('{{.TimeLimit}}');
 let timeLeft = timeLimit;
 const timerEl = document.getElementById('timer');
 

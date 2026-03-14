@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"my-app/internal/database"
+	"my-app/internal/llm"
 	"my-app/internal/server"
 )
 
@@ -28,8 +29,23 @@ func main() {
 
 	log.Println("Database connection established successfully")
 
+	// Initialize LLM client (optional — feature disabled if OCI vars not set)
+	var llmClient llm.QuestionGenerator
+	llmCfg := llm.DefaultConfig()
+	if llmCfg.IsConfigured() {
+		client, err := llm.NewClient(llmCfg)
+		if err != nil {
+			log.Printf("Warning: LLM client could not be initialized: %v", err)
+		} else {
+			llmClient = client
+			log.Println("OCI GenAI LLM client initialized")
+		}
+	} else {
+		log.Println("OCI GenAI not configured — Generate from Notes feature disabled")
+	}
+
 	// Create and configure the server
-	srv := server.NewServer(db)
+	srv := server.NewServer(db, llmClient)
 
 	// Set up graceful shutdown
 	stop := make(chan os.Signal, 1)

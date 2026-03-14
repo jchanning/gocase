@@ -1,5 +1,76 @@
 # Complete Change Log - All Implementations
 
+## 2026-02-17 - UI/UX Modernization Rollout
+
+### Visual Design System
+
+**File: `views/layout.html`**
+
+Implemented a semantic education-focused theme system and reusable UI primitives:
+
+- Added semantic color tokens (`--edu-primary`, `--edu-accent`, `--edu-bg`, `--edu-surface`, text/border/status colors)
+- Standardized typography and heading utilities (`page-title`, `page-subtitle`)
+- Added reusable components (`app-card`, `app-input`, `btn`, `btn-primary`, `btn-secondary`, `btn-accent`)
+- Improved focus visibility and keyboard accessibility styles
+- Harmonized shadows, radii, and default utility-class color overrides for consistent rendering
+
+### Student & Shared UX Updates
+
+Updated key student-facing and shared journeys to use the new component system:
+
+- `views/home.html`
+- `views/login.html`
+- `views/register.html`
+- `views/tests_list.html`
+- `views/dashboard.html`
+- `views/take_test.html`
+- `views/test_results.html`
+- `views/test_review.html`
+- `views/history.html`
+
+Highlights:
+
+- Consistent cards, buttons, and form fields across all primary user flows
+- Improved filter form labeling and submit semantics
+- Improved readability and hierarchy of headings/metadata
+- Preserved existing application behavior while modernizing visual treatment
+
+### Teacher & Admin UX Updates
+
+Updated teacher/admin workflows for consistent styling and better responsive behavior:
+
+- `views/teacher_dashboard.html`
+- `views/teacher_upload.html`
+- `views/admin.html`
+- `views/admin_manage.html`
+- `views/admin_users.html`
+- `views/admin_wizard.html`
+- `views/edit_test.html`
+- `views/test_preview.html`
+
+Highlights:
+
+- Responsive action bars and form grids for smaller screens
+- Standardized dashboard/admin card styling
+- Improved wizard and management page form consistency
+- Added/adjusted accessible labels and control semantics where diagnostics flagged issues
+- Guarded optional admin-page JavaScript initialization to avoid null-element runtime errors
+
+### Quality & Verification
+
+- Template diagnostics for updated views: no active errors
+- View template test passing: `internal/views/template_test.go`
+- Docker rebuild/recreate completed to ensure updated templates are served (`docker compose up -d --build --force-recreate`)
+- Manual QA pass completed by user and confirmed visually good
+
+### Rollout Status
+
+This phase completes:
+
+- Responsive refinements
+- Usability and visual QA
+- Changelog rollout documentation
+
 ## Database Schema Changes
 
 ### File: `internal/database/schema.sql`

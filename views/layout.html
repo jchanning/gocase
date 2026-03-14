@@ -7,19 +7,304 @@
     
     <!-- TailwindCSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --edu-primary: #1f5b96;
+            --edu-primary-hover: #18497a;
+            --edu-primary-soft: #eaf2fb;
+            --edu-accent: #0f766e;
+            --edu-bg: #f3f6fb;
+            --edu-surface: #ffffff;
+            --edu-surface-soft: #f7f9fc;
+            --edu-text: #0f2742;
+            --edu-text-muted: #4b6078;
+            --edu-border: #d7e2ef;
+            --edu-success: #15803d;
+            --edu-warning: #d97706;
+            --edu-danger: #b91c1c;
+        }
+
+        body {
+            font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--edu-bg);
+            color: var(--edu-text);
+            line-height: 1.5;
+        }
+
+        a {
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .shadow-md,
+        .shadow-lg {
+            box-shadow: 0 8px 24px rgba(15, 39, 66, 0.08);
+        }
+
+        .rounded-lg {
+            border-radius: 0.875rem;
+        }
+
+        .bg-white {
+            background-color: var(--edu-surface);
+        }
+
+        .bg-gray-100 {
+            background-color: var(--edu-bg);
+        }
+
+        .bg-gray-50 {
+            background-color: var(--edu-surface-soft);
+        }
+
+        .bg-gray-200 {
+            background-color: #e3eaf3;
+        }
+
+        .bg-gray-600,
+        .bg-gray-700,
+        .bg-gray-800 {
+            background-color: #22364d;
+        }
+
+        .hover\:bg-gray-50:hover {
+            background-color: #eff5fc;
+        }
+
+        .hover\:bg-gray-100:hover {
+            background-color: #eaf0f8;
+        }
+
+        .hover\:bg-gray-300:hover {
+            background-color: #cdd8e6;
+        }
+
+        .hover\:bg-gray-700:hover,
+        .hover\:bg-gray-800:hover {
+            background-color: #1b2c41;
+        }
+
+        .bg-blue-50,
+        .bg-blue-100 {
+            background-color: var(--edu-primary-soft);
+        }
+
+        .bg-blue-600,
+        .bg-blue-700 {
+            background-color: var(--edu-primary);
+        }
+
+        .hover\:bg-blue-700:hover,
+        .hover\:bg-blue-800:hover {
+            background-color: var(--edu-primary-hover);
+        }
+
+        .text-blue-100,
+        .text-blue-200 {
+            color: #d8e8fa;
+        }
+
+        .text-blue-600,
+        .text-blue-700,
+        .text-blue-800 {
+            color: var(--edu-primary);
+        }
+
+        .hover\:text-blue-800:hover {
+            color: var(--edu-primary-hover);
+        }
+
+        .border-blue-200,
+        .border-blue-400,
+        .border-blue-500 {
+            border-color: #8db4df;
+        }
+
+        .text-gray-400,
+        .text-gray-500,
+        .text-gray-600,
+        .text-gray-700 {
+            color: var(--edu-text-muted);
+        }
+
+        .text-gray-800,
+        .text-gray-900 {
+            color: var(--edu-text);
+        }
+
+        .border-gray-200,
+        .border-gray-300,
+        .border-gray-400 {
+            border-color: var(--edu-border);
+        }
+
+        .from-orange-400 {
+            --tw-gradient-from: #f59e0b var(--tw-gradient-from-position);
+            --tw-gradient-to: rgb(245 158 11 / 0) var(--tw-gradient-to-position);
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+        }
+
+        .to-orange-600 {
+            --tw-gradient-to: #d97706 var(--tw-gradient-to-position);
+        }
+
+        input,
+        select,
+        textarea {
+            border-color: var(--edu-border);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus,
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid rgba(31, 91, 150, 0.3);
+            outline-offset: 1px;
+            border-color: var(--edu-primary);
+        }
+
+        .focus\:ring-blue-500:focus,
+        .focus\:border-blue-500:focus {
+            border-color: var(--edu-primary);
+            box-shadow: 0 0 0 3px rgba(31, 91, 150, 0.2);
+        }
+
+        .bg-green-600 {
+            background-color: var(--edu-accent);
+        }
+
+        .hover\:bg-green-700:hover {
+            background-color: #0a5c56;
+        }
+
+        .text-green-600,
+        .text-green-700,
+        .text-green-800 {
+            color: var(--edu-success);
+        }
+
+        .bg-green-50,
+        .bg-green-100 {
+            background-color: #ebf9ef;
+        }
+
+        .border-green-200,
+        .border-green-400,
+        .border-green-500 {
+            border-color: #86d1a0;
+        }
+
+        .text-red-700,
+        .text-red-800,
+        .text-red-900 {
+            color: var(--edu-danger);
+        }
+
+        .bg-yellow-50,
+        .bg-orange-50 {
+            background-color: #fff7e8;
+        }
+
+        .app-card {
+            background: var(--edu-surface);
+            border: 1px solid var(--edu-border);
+            border-radius: 0.875rem;
+            box-shadow: 0 8px 24px rgba(15, 39, 66, 0.08);
+        }
+
+        .page-title {
+            color: var(--edu-text);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .page-subtitle {
+            color: var(--edu-text-muted);
+        }
+
+        .app-input {
+            width: 100%;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid var(--edu-border);
+            border-radius: 0.5rem;
+            background: #fff;
+        }
+
+        .app-input:focus {
+            outline: 3px solid rgba(31, 91, 150, 0.2);
+            outline-offset: 1px;
+            border-color: var(--edu-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            padding: 0.625rem 1rem;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--edu-primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--edu-primary-hover);
+        }
+
+        .btn-secondary {
+            background: #dfe8f3;
+            color: var(--edu-text);
+        }
+
+        .btn-secondary:hover {
+            background: #cdd8e6;
+        }
+
+        .btn-accent {
+            background: var(--edu-accent);
+            color: #fff;
+        }
+
+        .btn-accent:hover {
+            background: #0a5c56;
+        }
+
+        /* Hamburger animation */
+        .nav-open .nav-hamburger-line:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .nav-open .nav-hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        .nav-open .nav-hamburger-line:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+    </style>
     
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <nav class="bg-blue-600 text-white p-4 shadow-lg">
+    <nav class="bg-blue-600 text-white p-4 shadow-lg relative">
         <div class="container mx-auto flex justify-between items-center">
-            <div>
+            <div class="flex-shrink-0">
                 <h1 class="text-2xl font-bold">GoCaSE</h1>
                 <p class="text-sm text-blue-100">Test Preparation Platform</p>
             </div>
             {{if .Session}}
-            <div class="flex items-center space-x-4">
+            <!-- Hamburger button (mobile only) -->
+            <button id="nav-toggle" class="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded focus:outline-none focus:ring-2 focus:ring-white" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-menu">
+                <span class="nav-hamburger-line block w-6 h-0.5 bg-white rounded transition-all duration-300"></span>
+                <span class="nav-hamburger-line block w-6 h-0.5 bg-white rounded transition-all duration-300 mt-1.5"></span>
+                <span class="nav-hamburger-line block w-6 h-0.5 bg-white rounded transition-all duration-300 mt-1.5"></span>
+            </button>
+            <!-- Desktop nav -->
+            <div class="hidden md:flex items-center space-x-4">
                 <span class="text-sm">Welcome, <strong>{{.Session.Username}}</strong> ({{.Session.Role}})</span>
                 {{if eq .Session.Role "student"}}
                 <a href="/dashboard" class="hover:text-blue-200">Dashboard</a>
@@ -37,9 +322,50 @@
                 {{end}}
                 <a href="/logout" class="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">Logout</a>
             </div>
+            <!-- Mobile nav menu -->
+            <div id="nav-menu" class="hidden md:hidden absolute top-full left-0 right-0 bg-blue-700 shadow-lg z-50 border-t border-blue-500">
+                <div class="container mx-auto py-3 px-4 flex flex-col space-y-1">
+                    <span class="text-sm py-2 text-blue-200 border-b border-blue-500 mb-1">Welcome, <strong>{{.Session.Username}}</strong> ({{.Session.Role}})</span>
+                    {{if eq .Session.Role "student"}}
+                    <a href="/dashboard" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Dashboard</a>
+                    <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Tests</a>
+                    <a href="/history" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">History</a>
+                    {{else if eq .Session.Role "teacher"}}
+                    <a href="/teacher/dashboard" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Dashboard</a>
+                    <a href="/teacher/upload" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Upload Test</a>
+                    <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Browse Tests</a>
+                    {{else if eq .Session.Role "admin"}}
+                    <a href="/admin" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create</a>
+                    <a href="/admin/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">System</a>
+                    <a href="/admin/users" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Users</a>
+                    <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Tests</a>
+                    {{end}}
+                    <a href="/logout" class="py-2 px-3 mt-1 bg-blue-800 hover:bg-blue-900 rounded text-center transition-colors">Logout</a>
+                </div>
+            </div>
             {{end}}
         </div>
     </nav>
+    <script>
+    (function() {
+        var btn = document.getElementById('nav-toggle');
+        var menu = document.getElementById('nav-menu');
+        if (!btn || !menu) return;
+        btn.addEventListener('click', function() {
+            var open = !menu.classList.contains('hidden');
+            menu.classList.toggle('hidden');
+            btn.setAttribute('aria-expanded', !open);
+            btn.classList.toggle('nav-open', !open);
+        });
+        document.addEventListener('click', function(e) {
+            if (!btn.contains(e.target) && !menu.contains(e.target)) {
+                menu.classList.add('hidden');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.classList.remove('nav-open');
+            }
+        });
+    })();
+    </script>
     
     <main class="container mx-auto p-4">
         {{template "content" .}}

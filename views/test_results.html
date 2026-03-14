@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="max-w-4xl mx-auto">
     <!-- Results Header -->
-    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <div class="app-card p-8 mb-6">
         <div class="text-center">
             <div class="text-6xl mb-4">
                 {{if .Passed}}🎉{{else}}📝{{end}}
@@ -54,6 +54,7 @@
     </div>
 
     <!-- Question Review -->
+    <div class="app-card p-8">
         
         {{range $index, $question := .Test.Questions}}
         {{$answer := index $.Answers $question.ID}}
@@ -101,13 +102,13 @@
     </div>
 
     <div class="mt-8 flex justify-center gap-4">
-        <a href="/tests" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/tests" class="btn btn-primary py-3 px-6">
             Back to Tests
         </a>
-        <a href="/test/start?id={{.Test.ID}}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/test/start?id={{.Test.ID}}" class="btn btn-accent py-3 px-6">
             Retake Test
         </a>
-        <a href="/dashboard" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+        <a href="/dashboard" class="btn btn-secondary py-3 px-6">
             Dashboard
         </a>
     </div>
