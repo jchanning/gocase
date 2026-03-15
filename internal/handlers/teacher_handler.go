@@ -123,7 +123,9 @@ func (h *TeacherHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 		"TestStats": testStats,
 	}
 
-	tmpl, err := template.ParseFiles("views/layout.html", "views/teacher_dashboard.html")
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}).ParseFiles("views/layout.html", "views/teacher_dashboard.html")
 	if err != nil {
 		log.Printf("Error parsing templates: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
