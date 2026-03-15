@@ -23,7 +23,7 @@ COPY . .
 ARG TARGETARCH=arm64
 ARG BUILD_VERSION=dev
 RUN CGO_ENABLED=0 GOARCH=${TARGETARCH} GOOS=linux go build \
-    -ldflags="-w -s -X my-app/internal/version.Version=${BUILD_VERSION}" \
+    -ldflags="-w -s -X github.com/jchanning/gocase/internal/version.Version=${BUILD_VERSION}" \
     -o /app/server ./cmd/server/
 
 # Final stage - using alpine for minimal image with shell access
