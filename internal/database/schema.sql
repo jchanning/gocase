@@ -42,8 +42,49 @@ CREATE TABLE IF NOT EXISTS tests (
     time_limit_minutes INTEGER NOT NULL DEFAULT 10,
     passing_score INTEGER NOT NULL DEFAULT 60,
     published BOOLEAN DEFAULT FALSE,
+    review_status VARCHAR(30) NOT NULL DEFAULT 'draft' CHECK (review_status IN ('draft', 'pending_review', 'approved', 'changes_requested')),
+    reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP,
+    review_notes TEXT,
+    submitted_for_review_at TIMESTAMP,
     notes_filename VARCHAR(500),
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS review_status VARCHAR(30) NOT NULL DEFAULT 'draft';
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP;
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS review_notes TEXT;
+ALTER TABLE tests ADD COLUMN IF NOT EXISTS submitted_for_review_at TIMESTAMP;
+ALTER TABLE tests DROP CONSTRAINT IF EXISTS tests_review_status_check;
+ALTER TABLE tests ADD CONSTRAINT tests_review_status_check CHECK (review_status IN ('draft', 'pending_review', 'approved', 'changes_requested'));
+UPDATE tests
+SET review_status = 'approved', review_notes = COALESCE(review_notes, 'Legacy published test auto-approved during review workflow rollout.')
+WHERE published = TRUE AND (review_status IS NULL OR review_status = 'draft');
+
+CREATE TABLE IF NOT EXISTS test_review_events (
+    id SERIAL PRIMARY KEY,
+    test_id INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    decision VARCHAR(30) NOT NULL CHECK (decision IN ('submitted', 'approved', 'changes_requested', 'reset_to_draft')),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS test_feedback_issues (
+    id SERIAL PRIMARY KEY,
+    test_id INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    attempt_id INTEGER NOT NULL REFERENCES test_attempts(id) ON DELETE CASCADE,
+    reported_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    issue_type VARCHAR(40) NOT NULL CHECK (issue_type IN ('incorrect_answer', 'unclear_explanation', 'question_text_issue', 'other')),
+    student_comment TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_review', 'resolved', 'dismissed')),
+    review_response TEXT,
+    reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -151,12 +192,16 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_topics_subject ON topics(subject_id);
 CREATE INDEX IF NOT EXISTS idx_tests_subject ON tests(subject_id);
 CREATE INDEX IF NOT EXISTS idx_tests_topic ON tests(topic_id);
+CREATE INDEX IF NOT EXISTS idx_tests_review_status ON tests(review_status);
 CREATE INDEX IF NOT EXISTS idx_questions_test ON questions(test_id);
 CREATE INDEX IF NOT EXISTS idx_answer_options_question ON answer_options(question_id);
 CREATE INDEX IF NOT EXISTS idx_test_attempts_user ON test_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_test_attempts_test ON test_attempts(test_id);
 CREATE INDEX IF NOT EXISTS idx_student_answers_attempt ON student_answers(attempt_id);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
+CREATE INDEX IF NOT EXISTS idx_test_review_events_test ON test_review_events(test_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_issues_status ON test_feedback_issues(status);
+CREATE INDEX IF NOT EXISTS idx_feedback_issues_test ON test_feedback_issues(test_id);
 
 -- Insert default achievements
 INSERT INTO achievements (name, description, badge_icon, criteria_type, criteria_value, points_awarded) VALUES

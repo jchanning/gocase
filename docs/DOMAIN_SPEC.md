@@ -42,6 +42,12 @@ A teacher/admin-issued requirement that a specific student complete a specific t
 ### Recommendation
 A suggested next test shown after completion, based on subject and difficulty progression.
 
+### Review Status
+The publication governance state for a test. Valid values are `draft`, `pending_review`, `approved`, and `changes_requested`.
+
+### Feedback Issue
+A student-reported concern tied to a completed attempt, test, and question so teachers/admins can review and resolve content quality problems.
+
 ---
 
 ## 2. Core Invariants
@@ -75,6 +81,18 @@ Recommendations may suggest a next test, but must not modify assignment state or
 
 ### INV-010 — AI boundary
 AI may generate candidate test content from notes, but it may not directly publish tests, assign tests, or alter attempt results.
+
+### INV-011 — Review gate before publication
+A test must not be published unless its current review status is `approved`.
+
+### INV-012 — Review audit integrity
+Submitting, approving, or requesting changes on a test must leave an audit event, and approval decisions must record reviewer identity and timestamp.
+
+### INV-013 — Feedback ownership
+A student may only report an issue for their own completed attempt and only against questions that belong to that attempt's test.
+
+### INV-014 — Feedback moderation authority
+Only a teacher or admin may change feedback issue status or record a moderation response.
 
 ---
 
@@ -136,15 +154,23 @@ Current implementation enforces parts of this via validation and repository/hand
 
 ---
 
-## 7. Rules for AI-Generated Content
+## 7. Rules for Review and Feedback
+
+- publication is blocked until human review approval is recorded
+- requesting changes removes the test from approved publication state
+- feedback issues are workflow items and must retain reporter, target question, and status history context
+
+---
+
+## 8. Rules for AI-Generated Content
 
 - OCR/text extraction may fail partially; generated content must remain reviewable and editable by an admin
-- generated questions are drafts until explicitly saved/published through normal workflows
+- generated questions are drafts until explicitly saved and then approved/published through normal workflows
 - AI output must not be treated as trusted truth without validation
 
 ---
 
-## 8. Future Fitness Functions Derived from This Spec
+## 9. Future Fitness Functions Derived from This Spec
 
 Planned automated checks:
 - handlers do not access database pools directly
@@ -153,3 +179,5 @@ Planned automated checks:
 - only published tests are student-visible by default
 - assignment state transitions remain valid
 - attempt ownership is enforced on review/take/results endpoints
+- review-gated publication remains enforced
+- feedback moderation remains restricted to teacher/admin roles

@@ -42,12 +42,17 @@ type testAssignmentStore interface {
 	MarkCompleted(ctx context.Context, studentID, testID int) error
 }
 
+type testFeedbackStore interface {
+	CreateIssue(ctx context.Context, issue *models.TestFeedbackIssue) error
+}
+
 // TestHandler handles test-related requests
 type TestHandler struct {
 	testRepo       testCatalogStore
 	attemptRepo    testAttemptStore
 	userRepo       testUserStatsStore
 	assignmentRepo testAssignmentStore
+	feedbackRepo   testFeedbackStore
 }
 
 // testFilters captures query parameters for filtering available tests.
@@ -71,12 +76,18 @@ type historyFilters struct {
 }
 
 // NewTestHandler creates a new test handler
-func NewTestHandler(testRepo testCatalogStore, attemptRepo testAttemptStore, userRepo testUserStatsStore, assignmentRepo testAssignmentStore) *TestHandler {
+
+func NewTestHandler(testRepo testCatalogStore, attemptRepo testAttemptStore, userRepo testUserStatsStore, assignmentRepo testAssignmentStore, feedbackRepo ...testFeedbackStore) *TestHandler {
+	var issueRepo testFeedbackStore
+	if len(feedbackRepo) > 0 {
+		issueRepo = feedbackRepo[0]
+	}
 	return &TestHandler{
 		testRepo:       testRepo,
 		attemptRepo:    attemptRepo,
 		userRepo:       userRepo,
 		assignmentRepo: assignmentRepo,
+		feedbackRepo:   issueRepo,
 	}
 }
 
@@ -685,15 +696,16 @@ func (h *TestHandler) ViewResults(w http.ResponseWriter, r *http.Request) {
 	recommendation := h.buildRecommendation(r.Context(), session, test, passed)
 
 	data := map[string]interface{}{
-		"Session":         session,
-		"Test":            test,
-		"Attempt":         attempt,
-		"Answers":         answerMap,
-		"SelectedOptions": selectedOptions,
-		"AnswerCorrect":   answerCorrect,
-		"Percentage":      percentage,
-		"Passed":          passed,
-		"Recommendation":  recommendation,
+		"Session":           session,
+		"Test":              test,
+		"Attempt":           attempt,
+		"Answers":           answerMap,
+		"SelectedOptions":   selectedOptions,
+		"AnswerCorrect":     answerCorrect,
+		"Percentage":        percentage,
+		"Passed":            passed,
+		"Recommendation":    recommendation,
+		"FeedbackSubmitted": r.URL.Query().Get("feedback") == "reported",
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{
@@ -798,16 +810,17 @@ func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
 	passed := percentage >= float64(test.PassingScore)
 
 	data := map[string]interface{}{
-		"Session":         session,
-		"Test":            test,
-		"Attempt":         attempt,
-		"Answers":         answerMap,
-		"SelectedOptions": selectedOptions,
-		"AnswerCorrect":   answerCorrect,
-		"Percentage":      percentage,
-		"Passed":          passed,
-		"CorrectCount":    correctCount,
-		"IncorrectCount":  incorrectCount,
+		"Session":           session,
+		"Test":              test,
+		"Attempt":           attempt,
+		"Answers":           answerMap,
+		"SelectedOptions":   selectedOptions,
+		"AnswerCorrect":     answerCorrect,
+		"Percentage":        percentage,
+		"Passed":            passed,
+		"CorrectCount":      correctCount,
+		"IncorrectCount":    incorrectCount,
+		"FeedbackSubmitted": r.URL.Query().Get("feedback") == "reported",
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{
@@ -829,4 +842,111 @@ func (h *TestHandler) ReviewTest(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error executing template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// ReportIssue lets a student report an issue with a question or explanation after a completed attempt.
+func (h *TestHandler) ReportIssue(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.feedbackRepo == nil {
+		http.Error(w, "Feedback reporting is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	session := auth.GetSessionData(r)
+	if session == nil || session.Role != "student" {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
+	}
+
+	attemptID, err := strconv.Atoi(r.FormValue("attempt_id"))
+	if err != nil {
+		http.Error(w, "Invalid attempt ID", http.StatusBadRequest)
+		return
+	}
+	testID, err := strconv.Atoi(r.FormValue("test_id"))
+	if err != nil {
+		http.Error(w, "Invalid test ID", http.StatusBadRequest)
+		return
+	}
+	questionID, err := strconv.Atoi(r.FormValue("question_id"))
+	if err != nil {
+		http.Error(w, "Invalid question ID", http.StatusBadRequest)
+		return
+	}
+	issueType := r.FormValue("issue_type")
+	studentComment := strings.TrimSpace(r.FormValue("student_comment"))
+	redirectTo := r.FormValue("redirect_to")
+	if redirectTo == "" || !strings.HasPrefix(redirectTo, "/") {
+		redirectTo = "/test/review?attempt_id=" + strconv.Itoa(attemptID)
+	}
+
+	validIssueTypes := map[string]bool{
+		"incorrect_answer":    true,
+		"unclear_explanation": true,
+		"question_text_issue": true,
+		"other":               true,
+	}
+	if !validIssueTypes[issueType] {
+		http.Error(w, "Invalid issue type", http.StatusBadRequest)
+		return
+	}
+	if studentComment == "" {
+		http.Error(w, "Student comment is required", http.StatusBadRequest)
+		return
+	}
+
+	attempt, err := h.attemptRepo.GetByID(r.Context(), attemptID)
+	if err != nil || attempt.UserID != session.UserID || attempt.TestID != testID {
+		http.Error(w, "Unauthorized", http.StatusForbidden)
+		return
+	}
+	if attempt.Status != "completed" {
+		http.Error(w, "Feedback can only be submitted for completed attempts", http.StatusBadRequest)
+		return
+	}
+
+	test, err := h.testRepo.GetByID(r.Context(), testID)
+	if err != nil {
+		http.Error(w, "Test not found", http.StatusNotFound)
+		return
+	}
+
+	questionFound := false
+	for _, question := range test.Questions {
+		if question.ID == questionID {
+			questionFound = true
+			break
+		}
+	}
+	if !questionFound {
+		http.Error(w, "Question not found in attempt test", http.StatusBadRequest)
+		return
+	}
+
+	issue := &models.TestFeedbackIssue{
+		TestID:         testID,
+		QuestionID:     questionID,
+		AttemptID:      attemptID,
+		ReportedBy:     session.UserID,
+		IssueType:      issueType,
+		StudentComment: studentComment,
+	}
+	if err := h.feedbackRepo.CreateIssue(r.Context(), issue); err != nil {
+		log.Printf("Error creating feedback issue: %v", err)
+		http.Error(w, "Failed to submit feedback", http.StatusInternalServerError)
+		return
+	}
+
+	separator := "?"
+	if strings.Contains(redirectTo, "?") {
+		separator = "&"
+	}
+	http.Redirect(w, r, redirectTo+separator+"feedback=reported", http.StatusSeeOther)
 }

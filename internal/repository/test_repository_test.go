@@ -24,7 +24,7 @@ func TestGetRecommendation_ReturnsRecommendedTest(t *testing.T) {
 	subjectName := "Math"
 	subjectDescription := "Mathematics"
 	query := regexp.QuoteMeta(`
-		SELECT t.id, t.title, t.description, t.subject_id, t.difficulty,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.difficulty,
 		       t.time_limit_minutes, t.passing_score,
 		       s.id, s.name, s.description,
 		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
@@ -79,7 +79,7 @@ func TestGetRecommendation_PropagatesNoRows(t *testing.T) {
 
 	repo := NewTestRepository(mock)
 	query := regexp.QuoteMeta(`
-		SELECT t.id, t.title, t.description, t.subject_id, t.difficulty,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.difficulty,
 		       t.time_limit_minutes, t.passing_score,
 		       s.id, s.name, s.description,
 		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count

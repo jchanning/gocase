@@ -12,6 +12,7 @@ import (
 
 	"github.com/jchanning/gocase/internal/auth"
 	"github.com/jchanning/gocase/internal/models"
+	"github.com/jchanning/gocase/internal/repository"
 )
 
 type mockTeacherTestStore struct {
@@ -19,6 +20,7 @@ type mockTeacherTestStore struct {
 	publishedID   int
 	unpublishedID int
 	deletedID     int
+	publishErr    error
 }
 
 func (m *mockTeacherTestStore) GetOrCreateSubject(ctx context.Context, name, description string) (int, error) {
@@ -57,7 +59,7 @@ func (m *mockTeacherTestStore) UpdateAnswerOption(ctx context.Context, option *m
 }
 func (m *mockTeacherTestStore) PublishTest(ctx context.Context, testID int) error {
 	m.publishedID = testID
-	return nil
+	return m.publishErr
 }
 func (m *mockTeacherTestStore) UnpublishTest(ctx context.Context, testID int) error {
 	m.unpublishedID = testID
@@ -217,6 +219,32 @@ func TestTeacherPublishAndUnpublish_SucceedsForOwner(t *testing.T) {
 
 	if testStore.publishedID != 5 || testStore.unpublishedID != 5 {
 		t.Fatalf("expected publish and unpublish to target test 5, got publish=%d unpublish=%d", testStore.publishedID, testStore.unpublishedID)
+	}
+}
+
+func TestTeacherPublishTest_RequiresApprovedReview(t *testing.T) {
+	ownerID := 7
+	store := auth.NewSessionStore()
+	token, _ := store.Create(ownerID, "teacher", "teacher")
+	mw := auth.NewMiddleware(store)
+	testStore := &mockTeacherTestStore{
+		test:       &models.Test{ID: 5, CreatedBy: &ownerID, ReviewStatus: "draft"},
+		publishErr: repository.ErrReviewApprovalRequired,
+	}
+	handler := NewTeacherHandler(testStore, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, &mockTeacherAssignmentStore{})
+
+	req := httptest.NewRequest(http.MethodPost, "/teacher/test/5/publish", nil)
+	req.SetPathValue("id", "5")
+	req.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+	rr := httptest.NewRecorder()
+
+	mw.RequireAuth(http.HandlerFunc(handler.PublishTest)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusConflict {
+		t.Fatalf("expected conflict when review approval missing, got %d", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), "approved before it can be published") {
+		t.Fatalf("expected review gate message, got %q", rr.Body.String())
 	}
 }
 

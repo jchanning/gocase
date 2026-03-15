@@ -16,6 +16,7 @@ import (
 
 	"github.com/jchanning/gocase/internal/auth"
 	"github.com/jchanning/gocase/internal/models"
+	"github.com/jchanning/gocase/internal/repository"
 	"github.com/jchanning/gocase/internal/validation"
 )
 
@@ -67,6 +68,9 @@ func (h *TeacherHandler) ownsTest(ctx context.Context, session *auth.SessionData
 	test, err := h.testRepo.GetByID(ctx, testID)
 	if err != nil {
 		return nil, false, err
+	}
+	if session.Role == "admin" {
+		return test, true, nil
 	}
 	if test.CreatedBy == nil || *test.CreatedBy != session.UserID {
 		return test, false, nil
@@ -557,6 +561,15 @@ func (h *TeacherHandler) PublishTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.testRepo.PublishTest(r.Context(), testID); err != nil {
+		if err == repository.ErrReviewApprovalRequired {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"message": "Test must be approved before it can be published",
+			})
+			return
+		}
 		log.Printf("Error publishing test: %v", err)
 		http.Error(w, "Failed to publish test", http.StatusInternalServerError)
 		return

@@ -1,0 +1,4 @@
+From the test page, once the student has completed the test provide a link so they can read the notes the test was based on. This will help them review the material and understand any mistakes they made on the test.
+Allow Admins to export the test to PDF so that it can be validated and printed for offline use. The PDF should include the test questions, answer choices, correct and any relevant notes or explanations for each question.
+When tests are generated from notes using a LLM, store the reasoning for the correct answer choices so that it can be shown to students after they complete the test. This will help them understand the material better and learn from their mistakes. 
+When the test is completed and marked, show the workings or explanation for each question so the student can understand how to arrive at the correct answer. This will help them learn from their mistakes and improve their understanding of the material.

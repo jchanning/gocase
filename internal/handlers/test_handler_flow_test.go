@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -113,6 +114,16 @@ func (m *flowTestAssignmentStore) MarkCompleted(ctx context.Context, studentID, 
 	return nil
 }
 
+type flowTestFeedbackStore struct {
+	issue *models.TestFeedbackIssue
+}
+
+func (m *flowTestFeedbackStore) CreateIssue(ctx context.Context, issue *models.TestFeedbackIssue) error {
+	copyIssue := *issue
+	m.issue = &copyIssue
+	return nil
+}
+
 func TestStudentTestLifecycle_StartAnswerSubmit(t *testing.T) {
 	subjectID := 3
 	catalog := &flowTestCatalogStore{tests: map[int]*models.Test{
@@ -212,4 +223,79 @@ func TestSubmitAnswer_RejectsOtherUsersAttempt(t *testing.T) {
 	}
 	var _ map[string]any
 	_ = json.Valid(rr.Body.Bytes())
+}
+
+func TestReportIssue_StoresStudentIssueForCompletedAttempt(t *testing.T) {
+	question := models.Question{ID: 101, QuestionText: "What is 2 + 2?"}
+	catalog := &flowTestCatalogStore{tests: map[int]*models.Test{
+		8: {ID: 8, Questions: []models.Question{question}},
+	}}
+	attemptStore := &flowTestAttemptStore{attempts: map[int]*models.TestAttempt{
+		1: {ID: 1, UserID: 21, TestID: 8, Status: "completed"},
+	}, answers: map[int][]models.StudentAnswer{}}
+	feedbackStore := &flowTestFeedbackStore{}
+	handler := NewTestHandler(catalog, attemptStore, &flowTestUserStatsStore{stats: &models.UserStats{UserID: 21}}, &flowTestAssignmentStore{}, feedbackStore)
+
+	store := auth.NewSessionStore()
+	token, _ := store.Create(21, "student", "student")
+	mw := auth.NewMiddleware(store)
+
+	form := url.Values{}
+	form.Set("attempt_id", "1")
+	form.Set("test_id", "8")
+	form.Set("question_id", "101")
+	form.Set("issue_type", "unclear_explanation")
+	form.Set("student_comment", "The explanation skips a step.")
+	form.Set("redirect_to", "/test/review?attempt_id=1")
+	req := httptest.NewRequest(http.MethodPost, "/test/feedback/report", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+	rr := httptest.NewRecorder()
+
+	mw.RequireAuth(http.HandlerFunc(handler.ReportIssue)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("expected redirect after feedback submission, got %d", rr.Code)
+	}
+	if location := rr.Header().Get("Location"); location != "/test/review?attempt_id=1&feedback=reported" {
+		t.Fatalf("expected redirect with feedback flag, got %s", location)
+	}
+	if feedbackStore.issue == nil {
+		t.Fatal("expected feedback issue to be stored")
+	}
+	if feedbackStore.issue.ReportedBy != 21 || feedbackStore.issue.TestID != 8 || feedbackStore.issue.QuestionID != 101 {
+		t.Fatalf("unexpected stored issue: %#v", feedbackStore.issue)
+	}
+	if feedbackStore.issue.IssueType != "unclear_explanation" {
+		t.Fatalf("expected issue type to be persisted, got %#v", feedbackStore.issue)
+	}
+}
+
+func TestReportIssue_RejectsAttemptOwnedByAnotherStudent(t *testing.T) {
+	catalog := &flowTestCatalogStore{tests: map[int]*models.Test{8: {ID: 8, Questions: []models.Question{{ID: 101}}}}}
+	attemptStore := &flowTestAttemptStore{attempts: map[int]*models.TestAttempt{
+		1: {ID: 1, UserID: 99, TestID: 8, Status: "completed"},
+	}, answers: map[int][]models.StudentAnswer{}}
+	handler := NewTestHandler(catalog, attemptStore, &flowTestUserStatsStore{stats: &models.UserStats{UserID: 21}}, &flowTestAssignmentStore{}, &flowTestFeedbackStore{})
+
+	store := auth.NewSessionStore()
+	token, _ := store.Create(21, "student", "student")
+	mw := auth.NewMiddleware(store)
+
+	form := url.Values{}
+	form.Set("attempt_id", "1")
+	form.Set("test_id", "8")
+	form.Set("question_id", "101")
+	form.Set("issue_type", "other")
+	form.Set("student_comment", "This looks wrong")
+	req := httptest.NewRequest(http.MethodPost, "/test/feedback/report", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "session_token", Value: token})
+	rr := httptest.NewRecorder()
+
+	mw.RequireAuth(http.HandlerFunc(handler.ReportIssue)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden for another student's attempt, got %d", rr.Code)
+	}
 }

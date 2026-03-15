@@ -42,13 +42,15 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	testRepo := repository.NewTestRepository(db.Pool())
 	attemptRepo := repository.NewAttemptRepository(db.Pool())
 	assignmentRepo := repository.NewAssignmentRepository(db.Pool())
+	feedbackRepo := repository.NewFeedbackRepository(db.Pool())
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, s.sessionStore)
 	dashboardHandler := handlers.NewDashboardHandler(userRepo, attemptRepo, assignmentRepo)
-	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo, assignmentRepo)
+	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo, assignmentRepo, feedbackRepo)
 	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
 	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo)
+	manageHandler := handlers.NewManageHandler(testRepo, feedbackRepo)
 
 	// Initialize auth middleware
 	authMiddleware := auth.NewMiddleware(s.sessionStore)
@@ -77,14 +79,23 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 		r.Post("/test/submit", testHandler.SubmitTest)
 		r.Get("/test/results", testHandler.ViewResults)
 		r.Get("/test/review", testHandler.ReviewTest)
+		r.Post("/test/feedback/report", testHandler.ReportIssue)
 
 		// Admin/Teacher routes
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.RequireRole("admin", "teacher"))
-			r.Get("/admin", adminHandler.ShowAdmin)
+			r.Get("/manage", manageHandler.ShowManage)
+			r.Get("/admin", manageHandler.ShowManage)
+			r.Get("/admin/manage", manageHandler.ShowManage)
+			r.Post("/manage/test/{id}/submit-review", manageHandler.SubmitForReview)
+			r.Post("/manage/test/{id}/approve", manageHandler.ApproveTest)
+			r.Post("/manage/test/{id}/request-changes", manageHandler.RequestChanges)
+			r.Post("/manage/feedback/{id}/update", manageHandler.UpdateFeedbackIssue)
 			r.Get("/admin/wizard", adminHandler.ShowWizard)
 			r.Post("/admin/wizard", adminHandler.CreateWizardTest)
 			r.Post("/admin/upload", adminHandler.UploadTest)
+			r.Get("/admin/generate", adminHandler.ShowGenerate)
+			r.Post("/admin/generate", adminHandler.GenerateFromNotes)
 
 			// Teacher-specific routes
 			r.Get("/teacher/dashboard", teacherHandler.ShowDashboard)
@@ -105,9 +116,6 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 			// Admin-only routes
 			r.Group(func(r chi.Router) {
 				r.Use(authMiddleware.RequireRole("admin"))
-				r.Get("/admin/generate", adminHandler.ShowGenerate)
-				r.Post("/admin/generate", adminHandler.GenerateFromNotes)
-				r.Get("/admin/manage", adminHandler.ShowManagement)
 				r.Post("/admin/manage/subjects", adminHandler.CreateSubject)
 				r.Delete("/admin/manage/subjects/{id}", adminHandler.DeleteSubject)
 				r.Get("/admin/test/{id}/edit", adminHandler.EditTest)

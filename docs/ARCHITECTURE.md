@@ -103,6 +103,8 @@ users (id, email, role: student|teacher|admin)
 tests (id, title, subject_id, difficulty, exam_standard, published)
   ├── questions (test_id)
   │     └── answer_options (question_id, is_correct)
+  ├── test_review_events               ← content review audit trail
+  ├── test_feedback_issues             ← student-reported content issues
   └── subjects / topics
 ```
 
@@ -112,6 +114,8 @@ tests (id, title, subject_id, difficulty, exam_standard, published)
 - `role` ∈ {student, teacher, admin}
 - `test_attempts.status` ∈ {in_progress, completed, abandoned}
 - `test_assignments.status` ∈ {pending, completed, overdue}
+- `tests.review_status` ∈ {draft, pending_review, approved, changes_requested}
+- `test_feedback_issues.status` ∈ {open, in_review, resolved, dismissed}
 
 ---
 
@@ -186,3 +190,8 @@ safe against XSS by default, HTMX provides dynamic interactions without a full f
 **Decision:** No SMTP, no transactional email, no password-reset email.
 **Rationale:** Avoids external service dependency and complexity for the initial version. Admin resets passwords manually.
 **Consequences:** Password recovery requires admin intervention. Documented as a known limitation.
+
+### ADR-006: Review-gated publication
+**Decision:** Require explicit human approval before a test can be published.
+**Rationale:** Test creation and AI generation are draft-producing workflows; publication is a separate quality gate.
+**Consequences:** Staff edits can invalidate prior approval and publication must remain blocked until review is re-approved.

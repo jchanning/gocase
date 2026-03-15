@@ -312,11 +312,10 @@
                 <a href="/history" class="hover:text-blue-200">History</a>
                 {{else if eq .Session.Role "teacher"}}
                 <a href="/teacher/dashboard" class="hover:text-blue-200">Dashboard</a>
-                <a href="/teacher/upload" class="hover:text-blue-200">Upload Test</a>
+	                <a href="/manage" class="hover:text-blue-200">Create &amp; Manage</a>
                 <a href="/tests" class="hover:text-blue-200">Browse Tests</a>
                 {{else if eq .Session.Role "admin"}}
-                <a href="/admin" class="hover:text-blue-200">Create</a>
-                <a href="/admin/manage" class="hover:text-blue-200">System</a>
+	                <a href="/manage" class="hover:text-blue-200">Create &amp; Manage</a>
                 <a href="/admin/users" class="hover:text-blue-200">Users</a>
                 <a href="/tests" class="hover:text-blue-200">Tests</a>
                 {{end}}
@@ -332,11 +331,10 @@
                     <a href="/history" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">History</a>
                     {{else if eq .Session.Role "teacher"}}
                     <a href="/teacher/dashboard" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Dashboard</a>
-                    <a href="/teacher/upload" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Upload Test</a>
+	                    <a href="/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create &amp; Manage</a>
                     <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Browse Tests</a>
                     {{else if eq .Session.Role "admin"}}
-                    <a href="/admin" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create</a>
-                    <a href="/admin/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">System</a>
+	                    <a href="/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create &amp; Manage</a>
                     <a href="/admin/users" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Users</a>
                     <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Tests</a>
                     {{end}}

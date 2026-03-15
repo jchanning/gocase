@@ -33,6 +33,7 @@ HTMX is used for dynamic interactions.
 | POST | `/test/submit` | `TestHandler.SubmitTest` | student | Finalises attempt, calculates score |
 | GET | `/test/results` | `TestHandler.ViewResults` | student | `?attempt_id=<id>` — shows score + recommendation |
 | GET | `/test/review` | `TestHandler.ReviewTest` | student | `?attempt_id=<id>` — shows all Q&A with explanations |
+| POST | `/test/feedback/report` | `TestHandler.ReportIssue` | student | Report an issue against a question/explanation from a completed attempt |
 | GET | `/history` | `TestHandler.History` | Any auth | Past attempts with filters |
 | GET | `/tests/{id}/notes` | `AdminHandler.ServeTestNotes` | Any auth | Serves uploaded notes file (PDF/PPTX) |
 
@@ -43,6 +44,22 @@ HTMX is used for dynamic interactions.
 | `difficulty` | Easy, Medium, Hard | — |
 | `standard` | GCSE, A-Level, Primary, Secondary, IGCSE | — |
 | `published` | true, false | `true` |
+
+---
+
+## Staff Routes
+
+> Requires role: `teacher` or `admin`
+
+| Method | Path | Handler | Notes |
+|--------|------|---------|-------|
+| GET | `/manage` | `ManageHandler.ShowManage` | Combined Create & Manage screen for staff |
+| GET | `/admin` | `ManageHandler.ShowManage` | Legacy create route now mapped to Create & Manage |
+| GET | `/admin/manage` | `ManageHandler.ShowManage` | Legacy system route now mapped to Create & Manage |
+| POST | `/manage/test/{id}/submit-review` | `ManageHandler.SubmitForReview` | Submit test into review queue |
+| POST | `/manage/test/{id}/approve` | `ManageHandler.ApproveTest` | Approve test and record reviewer audit fields |
+| POST | `/manage/test/{id}/request-changes` | `ManageHandler.RequestChanges` | Move test out of approval state with reviewer notes |
+| POST | `/manage/feedback/{id}/update` | `ManageHandler.UpdateFeedbackIssue` | Review, respond to, or resolve student-reported issues |
 
 ---
 
@@ -76,8 +93,6 @@ HTMX is used for dynamic interactions.
 ### Test Management
 | Method | Path | Handler | Notes |
 |--------|------|---------|-------|
-| GET | `/admin` | `AdminHandler.ShowAdmin` | Main admin panel with test list |
-| GET | `/admin/manage` | `AdminHandler.ShowManagement` | Subject + topic management |
 | POST | `/admin/manage/subjects` | `AdminHandler.CreateSubject` | Create new subject |
 | DELETE | `/admin/manage/subjects/{id}` | `AdminHandler.DeleteSubject` | Delete subject (HTMX) |
 | GET | `/admin/test/{id}/edit` | `AdminHandler.EditTest` | Edit test (admin view) |
@@ -93,7 +108,7 @@ HTMX is used for dynamic interactions.
 |--------|------|---------|-------|
 | GET | `/admin/wizard` | `AdminHandler.ShowWizard` | Test creation wizard UI |
 | POST | `/admin/wizard` | `AdminHandler.CreateWizardTest` | Guided test creation |
-| GET | `/admin/generate` | `AdminHandler.ShowGenerate` | Notes → MCQ generation form |
+| GET | `/admin/generate` | `AdminHandler.ShowGenerate` | Notes → MCQ generation form, available from the shared staff surface |
 | POST | `/admin/generate` | `AdminHandler.GenerateFromNotes` | Calls OCI GenAI, returns JSON |
 
 ### User Management

@@ -18,9 +18,8 @@ COPY . .
 
 # Build the application
 # CGO_ENABLED=0 ensures a static binary
-# TARGETARCH is set automatically by Docker buildx / --platform,
-# or override with --build-arg TARGETARCH=amd64
-ARG TARGETARCH=arm64
+# TARGETARCH can be overridden by compose/buildx; default to amd64 for local builds.
+ARG TARGETARCH=amd64
 ARG BUILD_VERSION=dev
 RUN CGO_ENABLED=0 GOARCH=${TARGETARCH} GOOS=linux go build \
     -ldflags="-w -s -X github.com/jchanning/gocase/internal/version.Version=${BUILD_VERSION}" \

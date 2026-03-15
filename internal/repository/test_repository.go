@@ -2,9 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jchanning/gocase/internal/models"
 )
+
+var ErrReviewApprovalRequired = errors.New("test must be approved before it can be published")
 
 // TestRepository handles test database operations
 type TestRepository struct {
@@ -19,9 +22,10 @@ func NewTestRepository(pool dbQuerier) *TestRepository {
 // GetAll retrieves all tests
 func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 	query := `
-		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.review_status, t.reviewed_by, t.reviewed_at,
+		       t.review_notes, t.submitted_for_review_at, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description,
 		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
 		FROM tests t
@@ -43,7 +47,8 @@ func (r *TestRepository) GetAll(ctx context.Context) ([]models.Test, error) {
 		err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.TopicID,
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
-			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.PassingScore, &t.Published, &t.ReviewStatus, &t.ReviewedBy, &t.ReviewedAt,
+			&t.ReviewNotes, &t.SubmittedForReviewAt, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
 			&t.QuestionCount,
 		)
@@ -71,7 +76,9 @@ func (r *TestRepository) Update(ctx context.Context, test *models.Test) error {
 		UPDATE tests
 		SET title = $1, description = $2, subject_id = $3, topic_id = $4,
 		    exam_standard = $5, difficulty = $6, time_limit_minutes = $7,
-		    passing_score = $8, updated_at = CURRENT_TIMESTAMP
+		    passing_score = $8, review_status = 'draft', reviewed_by = NULL,
+		    reviewed_at = NULL, review_notes = NULL, submitted_for_review_at = NULL,
+		    published = false, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $9
 		RETURNING updated_at`
 
@@ -84,6 +91,13 @@ func (r *TestRepository) Update(ctx context.Context, test *models.Test) error {
 
 // PublishTest publishes a test making it available to students
 func (r *TestRepository) PublishTest(ctx context.Context, testID int) error {
+	var reviewStatus string
+	if err := r.pool.QueryRow(ctx, `SELECT review_status FROM tests WHERE id = $1`, testID).Scan(&reviewStatus); err != nil {
+		return err
+	}
+	if reviewStatus != "approved" {
+		return ErrReviewApprovalRequired
+	}
 	query := `UPDATE tests SET published = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := r.pool.Exec(ctx, query, testID)
 	return err
@@ -93,6 +107,45 @@ func (r *TestRepository) PublishTest(ctx context.Context, testID int) error {
 func (r *TestRepository) UnpublishTest(ctx context.Context, testID int) error {
 	query := `UPDATE tests SET published = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := r.pool.Exec(ctx, query, testID)
+	return err
+}
+
+// SubmitForReview marks a test as awaiting human review and records an audit event.
+func (r *TestRepository) SubmitForReview(ctx context.Context, testID, actorID int) error {
+	if _, err := r.pool.Exec(ctx, `
+		UPDATE tests
+		SET review_status = 'pending_review', submitted_for_review_at = CURRENT_TIMESTAMP,
+		    reviewed_by = NULL, reviewed_at = NULL, review_notes = NULL, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`, testID); err != nil {
+		return err
+	}
+	_, err := r.pool.Exec(ctx, `INSERT INTO test_review_events (test_id, actor_id, decision) VALUES ($1, $2, 'submitted')`, testID, actorID)
+	return err
+}
+
+// ApproveReview approves a test for publication and records reviewer metadata.
+func (r *TestRepository) ApproveReview(ctx context.Context, testID, reviewerID int, notes string) error {
+	if _, err := r.pool.Exec(ctx, `
+		UPDATE tests
+		SET review_status = 'approved', reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP,
+		    review_notes = NULLIF($3, ''), updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`, testID, reviewerID, notes); err != nil {
+		return err
+	}
+	_, err := r.pool.Exec(ctx, `INSERT INTO test_review_events (test_id, actor_id, decision, notes) VALUES ($1, $2, 'approved', NULLIF($3, ''))`, testID, reviewerID, notes)
+	return err
+}
+
+// RequestChanges moves a test back out of the approval state and records reviewer metadata.
+func (r *TestRepository) RequestChanges(ctx context.Context, testID, reviewerID int, notes string) error {
+	if _, err := r.pool.Exec(ctx, `
+		UPDATE tests
+		SET review_status = 'changes_requested', reviewed_by = $2, reviewed_at = CURRENT_TIMESTAMP,
+		    review_notes = NULLIF($3, ''), published = false, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1`, testID, reviewerID, notes); err != nil {
+		return err
+	}
+	_, err := r.pool.Exec(ctx, `INSERT INTO test_review_events (test_id, actor_id, decision, notes) VALUES ($1, $2, 'changes_requested', NULLIF($3, ''))`, testID, reviewerID, notes)
 	return err
 }
 
@@ -111,7 +164,7 @@ func (r *TestRepository) GetRecommendation(ctx context.Context, subjectID int, d
 	var subjectName, subjectDesc *string
 
 	err := r.pool.QueryRow(ctx, `
-		SELECT t.id, t.title, t.description, t.subject_id, t.difficulty,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.difficulty,
 		       t.time_limit_minutes, t.passing_score,
 		       s.id, s.name, s.description,
 		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
@@ -193,9 +246,10 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 	// Get test details
 	test := &models.Test{}
 	query := `
-		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.review_status, t.reviewed_by, t.reviewed_at,
+		       t.review_notes, t.submitted_for_review_at, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description
 		FROM tests t
 		LEFT JOIN subjects s ON t.subject_id = s.id
@@ -207,7 +261,8 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&test.ID, &test.Title, &test.Description, &test.SubjectID, &test.TopicID,
 		&test.ExamStandard, &test.Difficulty, &test.TimeLimitMinutes,
-		&test.PassingScore, &test.Published, &test.NotesFilename, &test.CreatedBy, &test.CreatedAt, &test.UpdatedAt,
+		&test.PassingScore, &test.Published, &test.ReviewStatus, &test.ReviewedBy, &test.ReviewedAt,
+		&test.ReviewNotes, &test.SubmittedForReviewAt, &test.NotesFilename, &test.CreatedBy, &test.CreatedAt, &test.UpdatedAt,
 		&subjectID, &subjectName, &subjectDesc,
 	)
 	if err != nil {
@@ -235,7 +290,7 @@ func (r *TestRepository) GetByID(ctx context.Context, id int) (*models.Test, err
 // getQuestionsByTestID retrieves all questions for a test
 func (r *TestRepository) getQuestionsByTestID(ctx context.Context, testID int) ([]models.Question, error) {
 	query := `
-		SELECT id, test_id, question_text, image_url, question_order, points, explanation, created_at
+		SELECT id, test_id, question_text, image_url, question_order, points, COALESCE(explanation, ''), created_at
 		FROM questions
 		WHERE test_id = $1
 		ORDER BY question_order`
@@ -300,8 +355,8 @@ func (r *TestRepository) getOptionsByQuestionID(ctx context.Context, questionID 
 func (r *TestRepository) Create(ctx context.Context, test *models.Test) error {
 	query := `
 		INSERT INTO tests (title, description, subject_id, topic_id, exam_standard,
-		                   difficulty, time_limit_minutes, passing_score, created_by)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		                   difficulty, time_limit_minutes, passing_score, review_status, created_by)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
 		RETURNING id, created_at, updated_at`
 
 	return r.pool.QueryRow(ctx, query,
@@ -403,9 +458,10 @@ func (r *TestRepository) GetOrCreateTopic(ctx context.Context, subjectID int, na
 // GetByCreator retrieves all tests created by a specific user
 func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models.Test, error) {
 	query := `
-		SELECT t.id, t.title, t.description, t.subject_id, t.topic_id,
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes,
-		       t.passing_score, t.published, t.notes_filename, t.created_by, t.created_at, t.updated_at,
+		       t.passing_score, t.published, t.review_status, t.reviewed_by, t.reviewed_at,
+		       t.review_notes, t.submitted_for_review_at, t.notes_filename, t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description,
 		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
 		FROM tests t
@@ -428,7 +484,8 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 		err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.TopicID,
 			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
-			&t.PassingScore, &t.Published, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.PassingScore, &t.Published, &t.ReviewStatus, &t.ReviewedBy, &t.ReviewedAt,
+			&t.ReviewNotes, &t.SubmittedForReviewAt, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&subjectID, &subjectName, &subjectDesc,
 			&t.QuestionCount,
 		)

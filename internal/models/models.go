@@ -38,26 +38,67 @@ type Topic struct {
 
 // Test represents a complete test/exam
 type Test struct {
-	ID               int       `json:"id"`
-	Title            string    `json:"title"`
-	Description      string    `json:"description"`
-	SubjectID        *int      `json:"subject_id"`
-	TopicID          *int      `json:"topic_id"`
-	ExamStandard     string    `json:"exam_standard"` // GCSE, A-Level, Primary, Secondary
-	Difficulty       string    `json:"difficulty"`    // Easy, Medium, Hard
-	TimeLimitMinutes int       `json:"time_limit_minutes"`
-	PassingScore     int       `json:"passing_score"`
-	Published        bool      `json:"published"`
-	NotesFilename    *string   `json:"notes_filename"`
-	CreatedBy        *int      `json:"created_by"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID                   int        `json:"id"`
+	Title                string     `json:"title"`
+	Description          string     `json:"description"`
+	SubjectID            *int       `json:"subject_id"`
+	TopicID              *int       `json:"topic_id"`
+	ExamStandard         string     `json:"exam_standard"` // GCSE, A-Level, Primary, Secondary
+	Difficulty           string     `json:"difficulty"`    // Easy, Medium, Hard
+	TimeLimitMinutes     int        `json:"time_limit_minutes"`
+	PassingScore         int        `json:"passing_score"`
+	Published            bool       `json:"published"`
+	ReviewStatus         string     `json:"review_status"`
+	ReviewedBy           *int       `json:"reviewed_by"`
+	ReviewedAt           *time.Time `json:"reviewed_at"`
+	ReviewNotes          *string    `json:"review_notes"`
+	SubmittedForReviewAt *time.Time `json:"submitted_for_review_at"`
+	NotesFilename        *string    `json:"notes_filename"`
+	CreatedBy            *int       `json:"created_by"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
 
 	// Related data (not in DB, populated via joins)
 	Subject       *Subject   `json:"subject,omitempty"`
 	Topic         *Topic     `json:"topic,omitempty"`
 	Questions     []Question `json:"questions,omitempty"`
 	QuestionCount int        `json:"question_count,omitempty"`
+}
+
+// TestReviewEvent records an audit event in the content review workflow.
+type TestReviewEvent struct {
+	ID        int       `json:"id"`
+	TestID    int       `json:"test_id"`
+	ActorID   *int      `json:"actor_id"`
+	Decision  string    `json:"decision"`
+	Notes     *string   `json:"notes"`
+	CreatedAt time.Time `json:"created_at"`
+
+	Actor *User `json:"actor,omitempty"`
+}
+
+// TestFeedbackIssue captures a student-reported question or explanation issue.
+type TestFeedbackIssue struct {
+	ID             int        `json:"id"`
+	TestID         int        `json:"test_id"`
+	QuestionID     int        `json:"question_id"`
+	AttemptID      int        `json:"attempt_id"`
+	ReportedBy     int        `json:"reported_by"`
+	IssueType      string     `json:"issue_type"`
+	StudentComment string     `json:"student_comment"`
+	Status         string     `json:"status"`
+	ReviewResponse *string    `json:"review_response"`
+	ReviewedBy     *int       `json:"reviewed_by"`
+	ReviewedAt     *time.Time `json:"reviewed_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+
+	Test           *Test     `json:"test,omitempty"`
+	Question       *Question `json:"question,omitempty"`
+	Reporter       *User     `json:"reporter,omitempty"`
+	Reviewer       *User     `json:"reviewer,omitempty"`
+	ReportedByName string    `json:"reported_by_name,omitempty"`
+	ReviewedByName string    `json:"reviewed_by_name,omitempty"`
 }
 
 // Question represents a single question in a test

@@ -27,18 +27,21 @@
 - [x] Immediate results with score, pass/fail, and question breakdown
 - [x] Explanations per question shown on results and review pages
 - [x] Test review page (all questions with correct/incorrect highlighting)
+- [x] Student issue reporting from results and review pages
 - [x] Test history with filters
 
 ### Tests — Teacher/Admin Management
 - [x] Upload tests via JSON file
 - [x] Create tests manually (title, subject, difficulty, exam standard, questions)
 - [x] Edit existing tests (metadata + questions)
+- [x] Review-gated publication with reviewer audit trail
 - [x] Publish / unpublish tests
 - [x] Preview tests as a student would see them
 - [x] Delete tests
 - [x] PDF export of tests (admin only)
 - [x] Assign tests to specific students with due dates
 - [x] Mark overdue assignments automatically
+- [x] Staff feedback queue for student-reported issues
 
 ### LLM / AI Features
 - [x] Upload PDF/PPTX notes file to a test
@@ -64,6 +67,7 @@
 - [x] Consistent design system (semantic tokens, reusable component classes)
 - [x] HTMX for dynamic interactions (answer submission, delete confirmations)
 - [x] Version number in footer
+- [x] Combined Create & Manage staff screen
 
 ---
 
@@ -89,6 +93,7 @@
 | TD-10 | Sessions | No session refresh on activity (24h hard expiry) | Low |
 | TD-11 | PPTX | PPTX text extraction is limited; complex layouts may miss content | Low |
 | TD-12 | Docs | Root docs drift was corrected; keep future docs synchronized in the same change set | DONE |
+| TD-13 | Deployment | Existing environments need the updated `internal/database/schema.sql` applied before using review/feedback features | Medium |
 
 ---
 
@@ -96,8 +101,8 @@
 
 Priority order based on current state:
 
-1. **[High]** Deploy the accumulated fixes and playbook-alignment work to Oracle Cloud
-2. **[Medium]** Expand architectural fitness tests beyond the initial guardrails
+1. **[High]** Apply the updated schema to existing environments before deploying the review/feedback workflow
+2. **[Medium]** Expand architectural fitness tests to cover review gating and feedback moderation authority
 3. **[Low]** Consolidate `IMPLEMENTATION.md`, `IMPLEMENTATION_COMPLETE.md`, `FEATURES_IMPLEMENTED.md` into this file
 
 ---
@@ -224,3 +229,36 @@ Priority order based on current state:
 **Files changed (key):**
 - `internal/handlers/test_handler_flow_test.go` — new
 - `internal/handlers/admin_handler_flow_test.go` — new
+
+### 2026-03-15 — Feature 13 Implementation Planning
+**Work done:**
+- Converted `spec/13_prompt_features.agent.md` into a contract-style implementation plan
+- Defined phased delivery for review-gated publication, student issue reporting, staff feedback operations, and Create & Manage consolidation
+- Added rollout questions and migration strategy for legacy published tests
+
+**Files changed (key):**
+- `spec/content-review-feedback-create-manage.spec.md` — new
+- `docs/IMPLEMENTATION_STATUS.md` — updated backlog and session log
+
+### 2026-03-15 — Feature 13 Initial Implementation
+**Work done:**
+- Added test review state, review audit events, and student feedback issue persistence
+- Blocked publication until approval and exposed staff review actions from the new Create & Manage screen
+- Added student issue reporting on results and review pages
+- Added staff feedback queue controls and moved AI generation into the shared staff surface
+- Added handler tests for review-gated publication and issue-report ownership
+
+**Files changed (key):**
+- `internal/database/schema.sql` — review and feedback schema
+- `internal/models/models.go` — review and feedback models
+- `internal/repository/test_repository.go` — review-aware queries and workflow methods
+- `internal/repository/feedback_repository.go` — new feedback repository
+- `internal/handlers/manage_handler.go` — new combined staff workflow handler
+- `internal/handlers/test_handler.go` — student issue reporting
+- `internal/handlers/teacher_handler.go` — review-gated publish handling
+- `internal/server/server.go` — route wiring for manage and feedback flows
+- `views/manage.html` — new combined staff screen
+- `views/test_results.html` — issue reporting UI
+- `views/test_review.html` — issue reporting UI
+- `internal/handlers/staff_handler_test.go` — review gate coverage
+- `internal/handlers/test_handler_flow_test.go` — feedback reporting coverage

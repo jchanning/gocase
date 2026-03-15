@@ -1,5 +1,10 @@
 {{define "content"}}
 <div class="max-w-4xl mx-auto">
+    {{if .FeedbackSubmitted}}
+    <div class="app-card p-4 mb-6 border-l-4 border-green-500 bg-green-50 text-green-800">
+        Your issue report has been submitted for staff review.
+    </div>
+    {{end}}
     <!-- Results Header -->
     <div class="app-card p-8 mb-6">
         <div class="text-center">
@@ -102,6 +107,25 @@
                 <p class="text-sm text-blue-700">{{$question.Explanation}}</p>
             </div>
             {{end}}
+
+            <details class="ml-11 mt-3 bg-gray-50 border rounded-lg p-3">
+                <summary class="cursor-pointer text-sm font-semibold text-gray-700">Report an issue with this question</summary>
+                <form method="post" action="/test/feedback/report" class="mt-3 space-y-3">
+                    <input type="hidden" name="attempt_id" value="{{$.Attempt.ID}}">
+                    <input type="hidden" name="test_id" value="{{$.Test.ID}}">
+                    <input type="hidden" name="question_id" value="{{$question.ID}}">
+                    <input type="hidden" name="redirect_to" value="/test/results?attempt_id={{$.Attempt.ID}}">
+                    <select name="issue_type" class="app-input text-sm" required>
+                        <option value="">Select issue type</option>
+                        <option value="incorrect_answer">Incorrect answer</option>
+                        <option value="unclear_explanation">Unclear explanation</option>
+                        <option value="question_text_issue">Question text issue</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <textarea name="student_comment" rows="3" class="app-input text-sm" placeholder="Explain what seems wrong or unclear" required></textarea>
+                    <button type="submit" class="btn btn-secondary py-2 px-4 text-sm">Submit Issue</button>
+                </form>
+            </details>
         </div>
         {{end}}
     </div>

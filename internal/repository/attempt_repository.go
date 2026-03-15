@@ -132,7 +132,7 @@ func (r *AttemptRepository) GetUserAttempts(ctx context.Context, userID int, lim
 	query := `
 		SELECT ta.id, ta.user_id, ta.test_id, ta.started_at, ta.completed_at,
 		       ta.score, ta.total_points, ta.time_taken_seconds, ta.status, ta.created_at,
-		       t.id, t.title, t.description, t.subject_id, t.topic_id,
+		       t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.topic_id,
 		       t.exam_standard, t.difficulty, t.time_limit_minutes, t.passing_score,
 		       t.created_by, t.created_at, t.updated_at,
 		       s.id, s.name, s.description,
