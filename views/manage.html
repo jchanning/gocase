@@ -121,6 +121,9 @@
                                         {{end}}
                                         <a href="/teacher/test/{{.ID}}/preview" class="btn btn-secondary py-1 px-3 text-xs">Preview</a>
                                         {{if .Published}}
+                                        <a href="/teacher/test/{{.ID}}/assign" class="btn btn-secondary py-1 px-3 text-xs">Assign</a>
+                                        {{end}}
+                                        {{if .Published}}
                                         <form method="post" action="/teacher/test/{{.ID}}/unpublish" class="inline">
                                             <button type="submit" class="btn btn-secondary py-1 px-3 text-xs">Unpublish</button>
                                         </form>
