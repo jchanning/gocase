@@ -171,6 +171,8 @@ func TestTeacherPublishTest_RequiresOwnership(t *testing.T) {
 		&mockTeacherUserStore{},
 		&mockTeacherAttemptStore{},
 		&mockTeacherAssignmentStore{},
+		nil,
+		nil,
 	)
 
 	req := httptest.NewRequest(http.MethodPost, "/teacher/test/5/publish", nil)
@@ -191,7 +193,7 @@ func TestTeacherPublishAndUnpublish_SucceedsForOwner(t *testing.T) {
 	token, _ := store.Create(ownerID, "teacher", "teacher")
 	mw := auth.NewMiddleware(store)
 	testStore := &mockTeacherTestStore{test: &models.Test{ID: 5, CreatedBy: &ownerID}}
-	handler := NewTeacherHandler(testStore, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, &mockTeacherAssignmentStore{})
+	handler := NewTeacherHandler(testStore, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, &mockTeacherAssignmentStore{}, nil, nil)
 
 	for _, tc := range []struct {
 		name     string
@@ -231,7 +233,7 @@ func TestTeacherPublishTest_RequiresApprovedReview(t *testing.T) {
 		test:       &models.Test{ID: 5, CreatedBy: &ownerID, ReviewStatus: "draft"},
 		publishErr: repository.ErrReviewApprovalRequired,
 	}
-	handler := NewTeacherHandler(testStore, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, &mockTeacherAssignmentStore{})
+	handler := NewTeacherHandler(testStore, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, &mockTeacherAssignmentStore{}, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/teacher/test/5/publish", nil)
 	req.SetPathValue("id", "5")
@@ -253,7 +255,7 @@ func TestTeacherAssignTest_ValidatesDueDateAndCreatesAssignments(t *testing.T) {
 	token, _ := store.Create(7, "teacher", "teacher")
 	mw := auth.NewMiddleware(store)
 	assignmentStore := &mockTeacherAssignmentStore{}
-	handler := NewTeacherHandler(&mockTeacherTestStore{}, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, assignmentStore)
+	handler := NewTeacherHandler(&mockTeacherTestStore{}, &mockTeacherUserStore{}, &mockTeacherAttemptStore{}, assignmentStore, nil, nil)
 
 	invalidReq := httptest.NewRequest(http.MethodPost, "/teacher/test/8/assign", strings.NewReader(url.Values{"student_ids": {"1"}}.Encode()))
 	invalidReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -281,7 +283,7 @@ func TestTeacherAssignTest_ValidatesDueDateAndCreatesAssignments(t *testing.T) {
 	if rr.Code != http.StatusSeeOther {
 		t.Fatalf("expected redirect after assignment, got %d", rr.Code)
 	}
-	if location := rr.Header().Get("Location"); location != "/teacher/dashboard" {
+	if location := rr.Header().Get("Location"); location != "/teacher/manage" {
 		t.Fatalf("expected redirect to teacher dashboard, got %s", location)
 	}
 	if len(assignmentStore.created) != 2 {

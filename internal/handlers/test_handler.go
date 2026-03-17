@@ -383,6 +383,13 @@ func filterTests(tests []models.Test, filters testFilters) []models.Test {
 // StartTest creates a new test attempt and displays the first question
 func (h *TestHandler) StartTest(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSessionData(r)
+
+	// Teachers and admins manage tests — they don't take them
+	if session.Role == "teacher" || session.Role == "admin" {
+		http.Redirect(w, r, "/teacher/manage", http.StatusSeeOther)
+		return
+	}
+
 	testIDStr := r.URL.Query().Get("id")
 	testID, err := strconv.Atoi(testIDStr)
 	if err != nil {

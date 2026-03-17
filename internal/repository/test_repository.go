@@ -506,3 +506,55 @@ func (r *TestRepository) GetByCreator(ctx context.Context, userID int) ([]models
 
 	return tests, rows.Err()
 }
+
+// GetPendingReview retrieves all tests currently awaiting peer review, oldest first.
+func (r *TestRepository) GetPendingReview(ctx context.Context) ([]models.Test, error) {
+	query := `
+		SELECT t.id, t.title, COALESCE(t.description, ''), t.subject_id, t.topic_id,
+		       t.exam_standard, t.difficulty, t.time_limit_minutes,
+		       t.passing_score, t.published, t.review_status, t.reviewed_by, t.reviewed_at,
+		       t.review_notes, t.submitted_for_review_at, t.notes_filename, t.created_by, t.created_at, t.updated_at,
+		       s.id, s.name, s.description,
+		       (SELECT COUNT(*) FROM questions q WHERE q.test_id = t.id) AS question_count
+		FROM tests t
+		LEFT JOIN subjects s ON t.subject_id = s.id
+		WHERE t.review_status = 'pending_review'
+		ORDER BY t.submitted_for_review_at ASC`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tests []models.Test
+	for rows.Next() {
+		var t models.Test
+		var subjectID *int
+		var subjectName, subjectDesc *string
+
+		err := rows.Scan(
+			&t.ID, &t.Title, &t.Description, &t.SubjectID, &t.TopicID,
+			&t.ExamStandard, &t.Difficulty, &t.TimeLimitMinutes,
+			&t.PassingScore, &t.Published, &t.ReviewStatus, &t.ReviewedBy, &t.ReviewedAt,
+			&t.ReviewNotes, &t.SubmittedForReviewAt, &t.NotesFilename, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&subjectID, &subjectName, &subjectDesc,
+			&t.QuestionCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if subjectID != nil {
+			t.Subject = &models.Subject{
+				ID:          *subjectID,
+				Name:        *subjectName,
+				Description: *subjectDesc,
+			}
+		}
+
+		tests = append(tests, t)
+	}
+
+	return tests, rows.Err()
+}

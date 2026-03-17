@@ -163,7 +163,11 @@ func (h *ManageHandler) handleTestReviewAction(w http.ResponseWriter, r *http.Re
 		http.Error(w, "Failed to update review", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/manage?message="+message, http.StatusSeeOther)
+	if session != nil && session.Role == "teacher" {
+		http.Redirect(w, r, "/teacher/create?message="+message, http.StatusSeeOther)
+	} else {
+		http.Redirect(w, r, "/manage?message="+message, http.StatusSeeOther)
+	}
 }
 
 func (h *ManageHandler) UpdateFeedbackIssue(w http.ResponseWriter, r *http.Request) {
@@ -196,5 +200,9 @@ func (h *ManageHandler) UpdateFeedbackIssue(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Failed to update issue", http.StatusInternalServerError)
 		return
 	}
-	http.Redirect(w, r, "/manage?message=feedback-updated", http.StatusSeeOther)
+	if session.Role == "teacher" {
+		http.Redirect(w, r, "/teacher/create?message=feedback-updated", http.StatusSeeOther)
+	} else {
+		http.Redirect(w, r, "/manage?message=feedback-updated", http.StatusSeeOther)
+	}
 }

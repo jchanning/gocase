@@ -1,0 +1,165 @@
+{{define "content"}}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="page-title text-3xl mb-2">Create Tests</h1>
+    <p class="text-gray-500 mb-8">Create new tests, review peer submissions, and manage student-reported issues.</p>
+
+    {{if eq .ReviewUpdated "review-approved"}}
+    <div class="mb-4 p-3 bg-green-50 border border-green-300 rounded text-green-800">Test approved successfully.</div>
+    {{else if eq .ReviewUpdated "review-changes-requested"}}
+    <div class="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-yellow-800">Changes requested. The test author has been notified.</div>
+    {{else if eq .ReviewUpdated "review-submitted"}}
+    <div class="mb-4 p-3 bg-blue-50 border border-blue-300 rounded text-blue-800">Test submitted for peer review.</div>
+    {{end}}
+    {{if .FeedbackUpdated}}
+    <div class="mb-4 p-3 bg-green-50 border border-green-300 rounded text-green-800">Feedback issue updated.</div>
+    {{end}}
+
+    <!-- Creation Options -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <!-- AI-Assisted Generation (Recommended) -->
+        <div class="app-card p-6 border-2 border-blue-400 relative">
+            <span class="absolute top-3 right-3 text-xs font-semibold px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">Recommended</span>
+            <div class="text-3xl mb-3">🤖</div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">AI-Assisted Generation</h3>
+            <p class="text-gray-500 text-sm mb-4">Upload your notes or lesson content and let AI generate high-quality test questions automatically.</p>
+            <a href="/admin/generate" class="btn btn-primary w-full text-center block">Create with AI</a>
+        </div>
+
+        <!-- Upload JSON -->
+        <div class="app-card p-6">
+            <div class="text-3xl mb-3">📄</div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Upload from JSON</h3>
+            <p class="text-gray-500 text-sm mb-4">Import a test from a structured JSON file. You will also need to upload the source notes for AI quality review.</p>
+            <a href="/teacher/upload" class="btn btn-secondary w-full text-center block">Upload JSON</a>
+        </div>
+
+        <!-- Manual Creation -->
+        <div class="app-card p-6">
+            <div class="text-3xl mb-3">✏️</div>
+            <h3 class="text-lg font-bold text-gray-800 mb-2">Manual Creation</h3>
+            <p class="text-gray-500 text-sm mb-4">Build a test from scratch using the question editor. Best for quick or specialised tests.</p>
+            <a href="/teacher/test/create" class="btn btn-secondary w-full text-center block">Create Manually</a>
+        </div>
+    </div>
+
+    <!-- Peer Review Queue -->
+    <div class="app-card p-6 mb-8">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">
+            Peer Review Queue
+            {{if .PendingReview}}
+            <span class="ml-2 text-sm font-semibold px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">{{len .PendingReview}} pending</span>
+            {{end}}
+        </h2>
+
+        {{if .PendingReview}}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Test</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Difficulty</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {{range .PendingReview}}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">
+                            <div class="text-sm font-medium text-gray-900">{{.Title}}</div>
+                            <div class="text-xs text-gray-400">{{.QuestionCount}} questions</div>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {{if .Subject}}{{.Subject.Name}}{{else}}&mdash;{{end}}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            {{if eq .Difficulty "easy"}}<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Easy</span>
+                            {{else if eq .Difficulty "medium"}}<span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Medium</span>
+                            {{else if eq .Difficulty "hard"}}<span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">Hard</span>
+                            {{else}}<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Expert</span>{{end}}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">
+                            {{if .SubmittedForReviewAt}}{{.SubmittedForReviewAt.Format "Jan 2, 2006"}}{{else}}&mdash;{{end}}
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <div class="flex items-center gap-2">
+                                <a href="/teacher/test/{{.ID}}/preview" class="text-blue-600 hover:text-blue-800 font-medium">Preview</a>
+                                <form method="POST" action="/manage/test/{{.ID}}/approve" class="inline">
+                                    <input type="hidden" name="review_notes" value="">
+                                    <button type="submit" class="text-green-600 hover:text-green-800 font-medium">Approve</button>
+                                </form>
+                                <button
+                                    onclick="document.getElementById('changes-form-{{.ID}}').classList.toggle('hidden')"
+                                    class="text-orange-600 hover:text-orange-800 font-medium">Request Changes</button>
+                            </div>
+                            <div id="changes-form-{{.ID}}" class="hidden mt-2">
+                                <form method="POST" action="/manage/test/{{.ID}}/request-changes">
+                                    <textarea name="review_notes" rows="2" placeholder="Describe the changes needed..."
+                                        class="w-full border border-gray-300 rounded p-2 text-sm mb-1" required></textarea>
+                                    <button type="submit" class="btn btn-secondary py-1 px-3 text-xs">Send Feedback</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <p class="text-gray-500 text-sm py-4">No tests are currently awaiting peer review.</p>
+        {{end}}
+    </div>
+
+    <!-- Student Reported Issues -->
+    <div class="app-card p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Student Reported Issues</h2>
+            <div class="flex gap-2 text-sm">
+                <a href="/teacher/create" class="px-3 py-1 rounded {{if eq .FeedbackStatus ""}}bg-blue-100 text-blue-700 font-semibold{{else}}text-gray-500 hover:text-gray-700{{end}}">All</a>
+                <a href="/teacher/create?feedback_status=open" class="px-3 py-1 rounded {{if eq .FeedbackStatus "open"}}bg-blue-100 text-blue-700 font-semibold{{else}}text-gray-500 hover:text-gray-700{{end}}">Open</a>
+                <a href="/teacher/create?feedback_status=in_review" class="px-3 py-1 rounded {{if eq .FeedbackStatus "in_review"}}bg-blue-100 text-blue-700 font-semibold{{else}}text-gray-500 hover:text-gray-700{{end}}">In Review</a>
+                <a href="/teacher/create?feedback_status=resolved" class="px-3 py-1 rounded {{if eq .FeedbackStatus "resolved"}}bg-blue-100 text-blue-700 font-semibold{{else}}text-gray-500 hover:text-gray-700{{end}}">Resolved</a>
+            </div>
+        </div>
+
+        {{if .FeedbackIssues}}
+        <div class="space-y-3">
+            {{range .FeedbackIssues}}
+            <div class="border border-gray-200 rounded p-4">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            {{if eq .Status "open"}}<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-700">Open</span>
+                            {{else if eq .Status "in_review"}}<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">In Review</span>
+                            {{else if eq .Status "resolved"}}<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700">Resolved</span>
+                            {{else}}<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">Dismissed</span>{{end}}
+                            <span class="text-xs text-gray-400">Test #{{.TestID}} &middot; Question #{{.QuestionID}}</span>
+                        </div>
+                        <p class="text-sm text-gray-800 font-medium">{{.IssueType}}</p>
+                        <p class="text-sm text-gray-600">{{.Description}}</p>
+                    </div>
+                </div>
+                <details class="mt-2">
+                    <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800">Triage this issue</summary>
+                    <form method="POST" action="/manage/feedback/{{.ID}}/update" class="mt-2 space-y-2">
+                        <select name="status" class="border border-gray-300 rounded p-1 text-sm">
+                            <option value="open" {{if eq .Status "open"}}selected{{end}}>Open</option>
+                            <option value="in_review" {{if eq .Status "in_review"}}selected{{end}}>In Review</option>
+                            <option value="resolved" {{if eq .Status "resolved"}}selected{{end}}>Resolved</option>
+                            <option value="dismissed" {{if eq .Status "dismissed"}}selected{{end}}>Dismissed</option>
+                        </select>
+                        <textarea name="review_response" rows="2" placeholder="Optional response to student..."
+                            class="w-full border border-gray-300 rounded p-2 text-sm">{{.ReviewResponse}}</textarea>
+                        <button type="submit" class="btn btn-secondary py-1 px-3 text-xs">Update</button>
+                    </form>
+                </details>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <p class="text-gray-500 text-sm py-4">No student-reported issues found.</p>
+        {{end}}
+    </div>
+</div>
+{{end}}

@@ -46,21 +46,33 @@ type teacherAssignmentStore interface {
 	Create(ctx context.Context, a *models.TestAssignment) error
 }
 
+type teacherFeedbackStore interface {
+	ListIssues(ctx context.Context, status string) ([]models.TestFeedbackIssue, error)
+}
+
+type teacherPendingReviewStore interface {
+	GetPendingReview(ctx context.Context) ([]models.Test, error)
+}
+
 // TeacherHandler handles teacher requests
 type TeacherHandler struct {
 	testRepo       teacherTestStore
 	userRepo       teacherUserStore
 	attemptRepo    teacherAttemptStore
 	assignmentRepo teacherAssignmentStore
+	feedbackRepo   teacherFeedbackStore
+	pendingRepo    teacherPendingReviewStore
 }
 
 // NewTeacherHandler creates a new teacher handler
-func NewTeacherHandler(testRepo teacherTestStore, userRepo teacherUserStore, attemptRepo teacherAttemptStore, assignmentRepo teacherAssignmentStore) *TeacherHandler {
+func NewTeacherHandler(testRepo teacherTestStore, userRepo teacherUserStore, attemptRepo teacherAttemptStore, assignmentRepo teacherAssignmentStore, feedbackRepo teacherFeedbackStore, pendingRepo teacherPendingReviewStore) *TeacherHandler {
 	return &TeacherHandler{
 		testRepo:       testRepo,
 		userRepo:       userRepo,
 		attemptRepo:    attemptRepo,
 		assignmentRepo: assignmentRepo,
+		feedbackRepo:   feedbackRepo,
+		pendingRepo:    pendingRepo,
 	}
 }
 
@@ -78,38 +90,54 @@ func (h *TeacherHandler) ownsTest(ctx context.Context, session *auth.SessionData
 	return test, true, nil
 }
 
-// ShowDashboard displays the teacher dashboard
+// ShowDashboard displays student performance overview for the teacher
 func (h *TeacherHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 	session := auth.GetSessionData(r)
 
-	// Get tests created by this teacher
+	// Get all assignments made by this teacher
+	assignments, err := h.assignmentRepo.GetByTeacher(r.Context(), session.UserID)
+	if err != nil {
+		log.Printf("Error fetching assignments: %v", err)
+		assignments = []models.TestAssignment{}
+	}
+
+	// Compute summary counts
+	var totalAssigned, totalCompleted, totalPending, totalOverdue int
+	for _, a := range assignments {
+		totalAssigned++
+		switch a.Status {
+		case "completed":
+			totalCompleted++
+		case "overdue":
+			totalOverdue++
+		default:
+			totalPending++
+		}
+	}
+
+	// Get per-test attempt stats for tests created by this teacher
 	tests, err := h.testRepo.GetByCreator(r.Context(), session.UserID)
 	if err != nil {
 		log.Printf("Error fetching tests: %v", err)
 		tests = []models.Test{}
 	}
 
-	// Get statistics for each test
 	testStats := make(map[int]map[string]interface{})
 	for _, test := range tests {
 		attempts, _ := h.attemptRepo.GetByTestID(r.Context(), test.ID)
-
 		totalAttempts := len(attempts)
 		var totalScore float64
 		completedAttempts := 0
-
 		for _, attempt := range attempts {
 			if attempt.CompletedAt != nil && attempt.Score != nil {
 				completedAttempts++
 				totalScore += float64(*attempt.Score)
 			}
 		}
-
 		avgScore := 0.0
 		if completedAttempts > 0 {
 			avgScore = totalScore / float64(completedAttempts)
 		}
-
 		testStats[test.ID] = map[string]interface{}{
 			"total_attempts":     totalAttempts,
 			"completed_attempts": completedAttempts,
@@ -117,15 +145,149 @@ func (h *TeacherHandler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Count open feedback issues for banner
+	openIssues := 0
+	if h.feedbackRepo != nil {
+		issues, _ := h.feedbackRepo.ListIssues(r.Context(), "open")
+		openIssues = len(issues)
+	}
+
 	data := map[string]interface{}{
-		"Session":   session,
-		"Tests":     tests,
-		"TestStats": testStats,
+		"Session":        session,
+		"Assignments":    assignments,
+		"Tests":          tests,
+		"TestStats":      testStats,
+		"TotalAssigned":  totalAssigned,
+		"TotalCompleted": totalCompleted,
+		"TotalPending":   totalPending,
+		"TotalOverdue":   totalOverdue,
+		"OpenIssues":     openIssues,
 	}
 
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"add": func(a, b int) int { return a + b },
 	}).ParseFiles("views/layout.html", "views/teacher_dashboard.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// ShowCreateTests displays the create/improve tests screen with review queue and feedback issues
+func (h *TeacherHandler) ShowCreateTests(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+
+	subjects, err := h.testRepo.GetSubjects(r.Context())
+	if err != nil {
+		log.Printf("Error fetching subjects: %v", err)
+		subjects = []models.Subject{}
+	}
+
+	pendingReview := []models.Test{}
+	if h.pendingRepo != nil {
+		pendingReview, err = h.pendingRepo.GetPendingReview(r.Context())
+		if err != nil {
+			log.Printf("Error fetching pending review tests: %v", err)
+			pendingReview = []models.Test{}
+		}
+	}
+
+	feedbackStatus := r.URL.Query().Get("feedback_status")
+	issues := []models.TestFeedbackIssue{}
+	if h.feedbackRepo != nil {
+		issues, err = h.feedbackRepo.ListIssues(r.Context(), feedbackStatus)
+		if err != nil {
+			log.Printf("Error fetching feedback issues: %v", err)
+			issues = []models.TestFeedbackIssue{}
+		}
+	}
+
+	data := map[string]interface{}{
+		"Session":         session,
+		"Subjects":        subjects,
+		"PendingReview":   pendingReview,
+		"FeedbackIssues":  issues,
+		"FeedbackStatus":  feedbackStatus,
+		"ReviewUpdated":   r.URL.Query().Get("message"),
+		"FeedbackUpdated": r.URL.Query().Get("message") == "feedback-updated",
+	}
+
+	tmpl, err := template.ParseFiles("views/layout.html", "views/teacher_create.html")
+	if err != nil {
+		log.Printf("Error parsing templates: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "layout.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// ShowManageTests displays the test management screen (view tests + assign to students)
+func (h *TeacherHandler) ShowManageTests(w http.ResponseWriter, r *http.Request) {
+	session := auth.GetSessionData(r)
+
+	tests, err := h.testRepo.GetByCreator(r.Context(), session.UserID)
+	if err != nil {
+		log.Printf("Error fetching tests: %v", err)
+		tests = []models.Test{}
+	}
+
+	// Build per-test attempt stats
+	testStats := make(map[int]map[string]interface{})
+	for _, test := range tests {
+		attempts, _ := h.attemptRepo.GetByTestID(r.Context(), test.ID)
+		totalAttempts := len(attempts)
+		var totalScore float64
+		completedAttempts := 0
+		for _, attempt := range attempts {
+			if attempt.CompletedAt != nil && attempt.Score != nil {
+				completedAttempts++
+				totalScore += float64(*attempt.Score)
+			}
+		}
+		avgScore := 0.0
+		if completedAttempts > 0 {
+			avgScore = totalScore / float64(completedAttempts)
+		}
+		testStats[test.ID] = map[string]interface{}{
+			"total_attempts":     totalAttempts,
+			"completed_attempts": completedAttempts,
+			"average_score":      fmt.Sprintf("%.1f", avgScore),
+		}
+	}
+
+	// Build per-test assignment counts
+	assignments, _ := h.assignmentRepo.GetByTeacher(r.Context(), session.UserID)
+	assignedCount := make(map[int]int)
+	completedCount := make(map[int]int)
+	for _, a := range assignments {
+		assignedCount[a.TestID]++
+		if a.Status == "completed" {
+			completedCount[a.TestID]++
+		}
+	}
+
+	data := map[string]interface{}{
+		"Session":        session,
+		"Tests":          tests,
+		"TestStats":      testStats,
+		"AssignedCount":  assignedCount,
+		"CompletedCount": completedCount,
+		"Message":        r.URL.Query().Get("message"),
+	}
+
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}).ParseFiles("views/layout.html", "views/teacher_manage.html")
 	if err != nil {
 		log.Printf("Error parsing templates: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -652,7 +814,7 @@ func (h *TeacherHandler) DeleteTest(w http.ResponseWriter, r *http.Request) {
 			"message": "Test deleted successfully",
 		})
 	} else {
-		http.Redirect(w, r, "/teacher/dashboard", http.StatusSeeOther)
+		http.Redirect(w, r, "/teacher/manage", http.StatusSeeOther)
 	}
 }
 
@@ -795,5 +957,5 @@ func (h *TeacherHandler) AssignTest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Redirect(w, r, "/teacher/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, "/teacher/manage", http.StatusSeeOther)
 }

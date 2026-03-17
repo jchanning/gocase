@@ -49,7 +49,7 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	dashboardHandler := handlers.NewDashboardHandler(userRepo, attemptRepo, assignmentRepo)
 	testHandler := handlers.NewTestHandler(testRepo, attemptRepo, userRepo, assignmentRepo, feedbackRepo)
 	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
-	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo)
+	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo, feedbackRepo, testRepo)
 	manageHandler := handlers.NewManageHandler(testRepo, feedbackRepo)
 
 	// Initialize auth middleware
@@ -99,6 +99,8 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 
 			// Teacher-specific routes
 			r.Get("/teacher/dashboard", teacherHandler.ShowDashboard)
+			r.Get("/teacher/create", teacherHandler.ShowCreateTests)
+			r.Get("/teacher/manage", teacherHandler.ShowManageTests)
 			r.Get("/teacher/upload", teacherHandler.ShowUpload)
 			r.Post("/teacher/upload", teacherHandler.UploadTest)
 			r.Get("/teacher/test/create", teacherHandler.ShowCreateTest)

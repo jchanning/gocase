@@ -312,8 +312,8 @@
                 <a href="/history" class="hover:text-blue-200">History</a>
                 {{else if eq .Session.Role "teacher"}}
                 <a href="/teacher/dashboard" class="hover:text-blue-200">Dashboard</a>
-	                <a href="/manage" class="hover:text-blue-200">Create &amp; Manage</a>
-                <a href="/tests" class="hover:text-blue-200">Browse Tests</a>
+                <a href="/teacher/create" class="hover:text-blue-200">Create Tests</a>
+                <a href="/teacher/manage" class="hover:text-blue-200">Manage Tests</a>
                 {{else if eq .Session.Role "admin"}}
 	                <a href="/manage" class="hover:text-blue-200">Create &amp; Manage</a>
                 <a href="/admin/users" class="hover:text-blue-200">Users</a>
@@ -331,8 +331,8 @@
                     <a href="/history" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">History</a>
                     {{else if eq .Session.Role "teacher"}}
                     <a href="/teacher/dashboard" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Dashboard</a>
-	                    <a href="/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create &amp; Manage</a>
-                    <a href="/tests" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Browse Tests</a>
+                    <a href="/teacher/create" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create Tests</a>
+                    <a href="/teacher/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Manage Tests</a>
                     {{else if eq .Session.Role "admin"}}
 	                    <a href="/manage" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Create &amp; Manage</a>
                     <a href="/admin/users" class="py-2 px-3 rounded hover:bg-blue-600 transition-colors">Users</a>
