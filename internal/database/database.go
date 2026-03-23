@@ -2,11 +2,15 @@ package database
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+//go:embed schema.sql
+var schemaSQL string
 
 // Service holds the database connection pool.
 type Service struct {
@@ -34,6 +38,14 @@ func NewService(connString string) (*Service, error) {
 	return &Service{
 		pool: pool,
 	}, nil
+}
+
+// ApplySchema runs the embedded schema.sql against the database.
+// All statements use CREATE TABLE IF NOT EXISTS / ADD COLUMN IF NOT EXISTS so
+// it is safe to call on every startup against an already-initialised database.
+func (s *Service) ApplySchema(ctx context.Context) error {
+	_, err := s.pool.Exec(ctx, schemaSQL)
+	return err
 }
 
 // Close closes the database connection pool.

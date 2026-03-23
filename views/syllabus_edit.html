@@ -1,0 +1,195 @@
+{{define "content"}}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    {{if .IsNew}}
+    <h1 class="page-title text-3xl mb-6">New Syllabus</h1>
+    {{else}}
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="page-title text-3xl">{{.Syllabus.Title}}</h1>
+        <div class="flex gap-2">
+            {{if .Syllabus.IsPublished}}
+            <form method="POST" action="/admin/syllabus/{{.Syllabus.ID}}/unpublish" class="inline">
+                <button class="btn btn-secondary text-sm">Unpublish</button>
+            </form>
+            {{else}}
+            <form method="POST" action="/admin/syllabus/{{.Syllabus.ID}}/publish" class="inline">
+                <button class="btn btn-accent text-sm">Publish</button>
+            </form>
+            {{end}}
+            <a href="/admin/syllabus" class="btn btn-secondary text-sm">Back to list</a>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- Metadata form -->
+    <div class="app-card p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Syllabus Details</h2>
+        {{if .IsNew}}
+        <form method="POST" action="/admin/syllabus">
+        {{else}}
+        <form method="POST" action="/admin/syllabus/{{.Syllabus.ID}}">
+        {{end}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                    <input type="text" name="title" required value="{{.Syllabus.Title}}"
+                           class="app-input" placeholder="e.g. GCSE Mathematics (AQA)">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                    <select name="subject_id" class="app-input">
+                        <option value="">— No subject —</option>
+                        {{range .Subjects}}
+                        <option value="{{.ID}}" {{if eq .ID $.SubjectIDInt}}selected{{end}}>{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Exam Standard *</label>
+                    <select name="exam_standard" class="app-input">
+                        {{range .ExamStandards}}
+                        <option value="{{.}}" {{if eq . $.Syllabus.ExamStandard}}selected{{end}}>{{.}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="2" class="app-input">{{.Syllabus.Description}}</textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">{{if .IsNew}}Create Syllabus{{else}}Save Changes{{end}}</button>
+        </form>
+    </div>
+
+    {{if not .IsNew}}
+    <!-- Sections & Topics -->
+    <div class="app-card p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Sections &amp; Topics</h2>
+        </div>
+
+        {{range .Syllabus.Sections}}
+        <div class="border border-gray-200 rounded-lg mb-4">
+            <!-- Section header -->
+            <div class="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-t-lg">
+                <span class="font-semibold text-gray-800">{{.Title}}</span>
+                <div class="flex gap-2">
+                    <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/section/{{.ID}}/update" class="inline flex gap-1">
+                        <input type="text" name="title" value="{{.Title}}" class="app-input text-sm py-1 w-48">
+                        <input type="hidden" name="section_order" value="{{.SectionOrder}}">
+                        <button class="btn btn-secondary text-xs px-2 py-1">Rename</button>
+                    </form>
+                    <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/section/{{.ID}}/delete" class="inline"
+                          onsubmit="return confirm('Delete this section and all its topics?')">
+                        <button class="btn text-xs px-2 py-1 text-red-600 bg-red-50 hover:bg-red-100">Delete</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Topics in this section -->
+            <div class="divide-y divide-gray-100">
+                {{range .Topics}}
+                <div class="px-4 py-3 bg-white">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <div class="font-medium text-gray-800 text-sm">{{.Title}}</div>
+                            {{if .Description}}<div class="text-xs text-gray-400 mt-0.5">{{.Description}}</div>{{end}}
+                            <div class="text-xs text-gray-400 mt-0.5">{{.EstimatedHours}}h estimated</div>
+                        </div>
+                        <div class="flex gap-1 ml-4 flex-shrink-0">
+                            <details class="relative">
+                                <summary class="btn btn-secondary text-xs px-2 py-1 cursor-pointer list-none">Edit</summary>
+                                <div class="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-10 w-72">
+                                    <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/topic/{{.ID}}/update">
+                                        <input type="hidden" name="section_id" value="{{$.ID}}">
+                                        <div class="mb-2">
+                                            <label class="block text-xs text-gray-600 mb-1">Title</label>
+                                            <input type="text" name="title" value="{{.Title}}" class="app-input text-sm py-1">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="block text-xs text-gray-600 mb-1">Description</label>
+                                            <textarea name="description" rows="2" class="app-input text-sm py-1">{{.Description}}</textarea>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="block text-xs text-gray-600 mb-1">Est. hours</label>
+                                            <input type="number" name="estimated_hours" step="0.5" min="0.5" value="{{.EstimatedHours}}" class="app-input text-sm py-1">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="block text-xs text-gray-600 mb-1">Notes</label>
+                                            <textarea name="notes_content" rows="3" class="app-input text-sm py-1">{{.NotesContent}}</textarea>
+                                        </div>
+                                        <button class="btn btn-primary text-xs w-full">Save</button>
+                                    </form>
+                                </div>
+                            </details>
+                            <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/topic/{{.ID}}/delete" class="inline"
+                                  onsubmit="return confirm('Delete this topic?')">
+                                <button class="btn text-xs px-2 py-1 text-red-600 bg-red-50 hover:bg-red-100">Del</button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Linked tests -->
+                    {{if .Tests}}
+                    <div class="mt-2 flex flex-wrap gap-1">
+                        {{range .Tests}}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                            {{.Title}}
+                            <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/topic/{{$.ID}}/tests/{{.ID}}/delete" class="inline">
+                                <button class="text-red-400 hover:text-red-600 leading-none ml-1">&times;</button>
+                            </form>
+                        </span>
+                        {{end}}
+                    </div>
+                    {{end}}
+                    <!-- Link a test -->
+                    <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/topic/{{.ID}}/tests" class="mt-2 flex gap-1">
+                        <select name="test_id" class="app-input text-xs py-1 flex-1">
+                            <option value="">— Link a test —</option>
+                            {{range $.AvailableTests}}
+                            <option value="{{.ID}}">{{.Title}}</option>
+                            {{end}}
+                        </select>
+                        <button class="btn btn-secondary text-xs px-2 py-1">Link</button>
+                    </form>
+                </div>
+                {{end}}
+            </div>
+
+            <!-- Add topic to section -->
+            <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 rounded-b-lg">
+                <details>
+                    <summary class="text-sm text-blue-600 cursor-pointer font-medium">+ Add topic to this section</summary>
+                    <form method="POST" action="/admin/syllabus/{{$.Syllabus.ID}}/topic" class="mt-3 grid grid-cols-2 gap-2">
+                        <input type="hidden" name="section_id" value="{{.ID}}">
+                        <div class="col-span-2">
+                            <input type="text" name="title" class="app-input text-sm" placeholder="Topic title *" required>
+                        </div>
+                        <div>
+                            <input type="text" name="description" class="app-input text-sm" placeholder="Description (optional)">
+                        </div>
+                        <div>
+                            <input type="number" name="estimated_hours" step="0.5" min="0.5" value="1" class="app-input text-sm" placeholder="Hours">
+                        </div>
+                        <div class="col-span-2">
+                            <button class="btn btn-primary text-sm">Add Topic</button>
+                        </div>
+                    </form>
+                </details>
+            </div>
+        </div>
+        {{end}}
+
+        <!-- Add section -->
+        <div class="border border-dashed border-gray-300 rounded-lg p-4">
+            <details>
+                <summary class="text-sm text-blue-600 cursor-pointer font-medium">+ Add new section</summary>
+                <form method="POST" action="/admin/syllabus/{{.Syllabus.ID}}/section" class="mt-3 flex gap-2">
+                    <input type="text" name="title" required class="app-input" placeholder="Section title">
+                    <input type="number" name="section_order" value="0" class="app-input w-20" placeholder="Order">
+                    <button class="btn btn-primary">Add</button>
+                </form>
+            </details>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

@@ -232,3 +232,86 @@ type QuestionUpload struct {
 	CorrectIndex int      `json:"correct_index"` // 0-3, which option is correct
 	Explanation  string   `json:"explanation,omitempty"`
 }
+
+// ----------------------------------------------------------------
+// Syllabus & Revision Planner
+// ----------------------------------------------------------------
+
+// Syllabus represents an authoritative topic list for a subject at an exam level.
+type Syllabus struct {
+	ID           int       `json:"id"`
+	SubjectID    *int      `json:"subject_id"`
+	ExamStandard string    `json:"exam_standard"`
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	IsPublished  bool      `json:"is_published"`
+	CreatedBy    *int      `json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	// Related
+	Subject    *Subject          `json:"subject,omitempty"`
+	Sections   []SyllabusSection `json:"sections,omitempty"`
+	TopicCount int               `json:"topic_count,omitempty"`
+}
+
+// SyllabusSection is a grouping of topics within a syllabus.
+type SyllabusSection struct {
+	ID           int       `json:"id"`
+	SyllabusID   int       `json:"syllabus_id"`
+	Title        string    `json:"title"`
+	SectionOrder int       `json:"section_order"`
+	CreatedAt    time.Time `json:"created_at"`
+
+	Topics []SyllabusTopic `json:"topics,omitempty"`
+}
+
+// SyllabusTopic is a single curriculum entry within a syllabus section.
+type SyllabusTopic struct {
+	ID             int       `json:"id"`
+	SyllabusID     int       `json:"syllabus_id"`
+	SectionID      *int      `json:"section_id"`
+	Title          string    `json:"title"`
+	Description    string    `json:"description"`
+	EstimatedHours float64   `json:"estimated_hours"`
+	TopicOrder     int       `json:"topic_order"`
+	NotesContent   string    `json:"notes_content"`
+	CreatedAt      time.Time `json:"created_at"`
+
+	Tests []Test `json:"tests,omitempty"`
+}
+
+// RevisionPlan is a student's study schedule built from a syllabus.
+type RevisionPlan struct {
+	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
+	SyllabusID  int       `json:"syllabus_id"`
+	ExamDate    time.Time `json:"exam_date"`
+	HoursPerDay float64   `json:"hours_per_day"`
+	StudyDays   []int     `json:"study_days"` // 0=Sun…6=Sat, stored as JSON TEXT in DB
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+
+	// Related / computed
+	Syllabus       *Syllabus         `json:"syllabus,omitempty"`
+	Sessions       []RevisionSession `json:"sessions,omitempty"`
+	DaysUntilExam  int               `json:"days_until_exam"`
+	TotalSessions  int               `json:"total_sessions"`
+	CompletedCount int               `json:"completed_count"`
+	Progress       int               `json:"progress"` // 0-100, percent of sessions completed
+}
+
+// RevisionSession is a single scheduled study block within a revision plan.
+type RevisionSession struct {
+	ID              int        `json:"id"`
+	PlanID          int        `json:"plan_id"`
+	SessionDate     time.Time  `json:"session_date"`
+	SyllabusTopicID int        `json:"syllabus_topic_id"`
+	HoursAllocated  float64    `json:"hours_allocated"`
+	Status          string     `json:"status"` // scheduled, completed, skipped
+	Notes           string     `json:"notes"`
+	CompletedAt     *time.Time `json:"completed_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+
+	Topic *SyllabusTopic `json:"topic,omitempty"`
+}

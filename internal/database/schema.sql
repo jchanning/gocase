@@ -198,6 +198,88 @@ CREATE INDEX IF NOT EXISTS idx_answer_options_question ON answer_options(questio
 CREATE INDEX IF NOT EXISTS idx_test_attempts_user ON test_attempts(user_id);
 CREATE INDEX IF NOT EXISTS idx_test_attempts_test ON test_attempts(test_id);
 CREATE INDEX IF NOT EXISTS idx_student_answers_attempt ON student_answers(attempt_id);
+
+-- ============================================================
+-- Syllabus & Revision Planner
+-- ============================================================
+
+-- Syllabi: an authoritative topic list for a subject at an exam level
+CREATE TABLE IF NOT EXISTS syllabi (
+    id SERIAL PRIMARY KEY,
+    subject_id INTEGER REFERENCES subjects(id) ON DELETE SET NULL,
+    exam_standard VARCHAR(50) NOT NULL CHECK (exam_standard IN ('GCSE', 'IGCSE', 'A-Level', 'Primary', 'Secondary')),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_published BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sections group topics within a syllabus
+CREATE TABLE IF NOT EXISTS syllabus_sections (
+    id SERIAL PRIMARY KEY,
+    syllabus_id INTEGER NOT NULL REFERENCES syllabi(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    section_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Topics are individual curriculum entries within a section
+CREATE TABLE IF NOT EXISTS syllabus_topics (
+    id SERIAL PRIMARY KEY,
+    syllabus_id INTEGER NOT NULL REFERENCES syllabi(id) ON DELETE CASCADE,
+    section_id INTEGER REFERENCES syllabus_sections(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    estimated_hours REAL NOT NULL DEFAULT 1.0,
+    topic_order INTEGER NOT NULL DEFAULT 0,
+    notes_content TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Links syllabus topics to existing tests
+CREATE TABLE IF NOT EXISTS syllabus_topic_tests (
+    syllabus_topic_id INTEGER NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+    test_id INTEGER NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (syllabus_topic_id, test_id)
+);
+
+-- A student's revision plan for a specific syllabus
+CREATE TABLE IF NOT EXISTS revision_plans (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    syllabus_id INTEGER NOT NULL REFERENCES syllabi(id) ON DELETE CASCADE,
+    exam_date DATE NOT NULL,
+    hours_per_day REAL NOT NULL DEFAULT 2.0,
+    study_days TEXT NOT NULL DEFAULT '[1,2,3,4,5]',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, syllabus_id)
+);
+
+-- Individual scheduled study sessions generated from a revision plan
+CREATE TABLE IF NOT EXISTS revision_sessions (
+    id SERIAL PRIMARY KEY,
+    plan_id INTEGER NOT NULL REFERENCES revision_plans(id) ON DELETE CASCADE,
+    session_date DATE NOT NULL,
+    syllabus_topic_id INTEGER NOT NULL REFERENCES syllabus_topics(id) ON DELETE CASCADE,
+    hours_allocated REAL NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'skipped')),
+    notes TEXT,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_syllabi_subject ON syllabi(subject_id);
+CREATE INDEX IF NOT EXISTS idx_syllabi_published ON syllabi(is_published);
+CREATE INDEX IF NOT EXISTS idx_syllabus_sections_syllabus ON syllabus_sections(syllabus_id);
+CREATE INDEX IF NOT EXISTS idx_syllabus_topics_syllabus ON syllabus_topics(syllabus_id);
+CREATE INDEX IF NOT EXISTS idx_syllabus_topics_section ON syllabus_topics(section_id);
+CREATE INDEX IF NOT EXISTS idx_revision_plans_user ON revision_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_revision_sessions_plan ON revision_sessions(plan_id);
+CREATE INDEX IF NOT EXISTS idx_revision_sessions_date ON revision_sessions(session_date);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
 CREATE INDEX IF NOT EXISTS idx_test_review_events_test ON test_review_events(test_id);
 CREATE INDEX IF NOT EXISTS idx_feedback_issues_status ON test_feedback_issues(status);

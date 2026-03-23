@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,6 +29,12 @@ func main() {
 	defer db.Close()
 
 	log.Println("Database connection established successfully")
+
+	// Apply schema migrations (idempotent – safe to run on every startup)
+	if err := db.ApplySchema(context.Background()); err != nil {
+		log.Fatalf("Failed to apply database schema: %v", err)
+	}
+	log.Println("Database schema applied successfully")
 
 	// Initialize LLM client (optional — feature disabled if OCI vars not set)
 	var llmClient llm.QuestionGenerator

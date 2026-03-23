@@ -1,5 +1,36 @@
 # Complete Change Log - All Implementations
 
+## v0.1.3 — 2026-03-23 — Syllabus & Revision Planner + Schema Auto-Migration
+
+### New Features
+
+**Syllabus Management (`/admin/syllabus`)**
+- Admin and teacher users can create, edit, publish, and unpublish exam syllabi
+- Syllabi are organised into sections, each containing ordered curriculum topics
+- Topics carry title, description, estimated hours, and free-text notes
+- Topics can be linked to existing tests for direct access from the revision planner
+- Test search panel filters by subject when linking tests to topics
+
+**Revision Planner (student-facing)**
+- Students can create a personal revision plan for any published syllabus
+- Plan inputs: exam date, daily study hours, active study days of the week
+- Scheduler auto-generates per-topic sessions proportional to estimated hours
+- Session status tracking: scheduled → completed / skipped
+- Dashboard shows upcoming sessions and overall plan progress
+
+**Database Routing & Views**
+- New routes: `GET/POST /admin/syllabus`, `GET/POST /admin/syllabus/{id}`, publish/unpublish, section CRUD, topic CRUD, test link/unlink
+- New views: `syllabus_manage.html`, `syllabus_edit.html`, `revision_planner.html`, `revision_plan.html`, `revision_create.html`
+
+### Bug Fixes
+
+**Schema auto-migration on startup** (`internal/database/database.go`, `cmd/server/main.go`)
+- Added `ApplySchema` method that embeds `schema.sql` at compile time and executes it against the database on every startup
+- All DDL uses `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` so it is safe to run against an already-populated database
+- Fixes 500 error on `/admin/syllabus` when the database was initialised before the syllabus tables were added to the schema
+
+---
+
 ## 2026-02-17 - UI/UX Modernization Rollout
 
 ### Visual Design System

@@ -43,6 +43,8 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	attemptRepo := repository.NewAttemptRepository(db.Pool())
 	assignmentRepo := repository.NewAssignmentRepository(db.Pool())
 	feedbackRepo := repository.NewFeedbackRepository(db.Pool())
+	syllabusRepo := repository.NewSyllabusRepository(db.Pool())
+	revisionRepo := repository.NewRevisionRepository(db.Pool())
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(userRepo, s.sessionStore)
@@ -51,6 +53,8 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 	adminHandler := handlers.NewAdminHandler(testRepo, userRepo, llmClient)
 	teacherHandler := handlers.NewTeacherHandler(testRepo, userRepo, attemptRepo, assignmentRepo, feedbackRepo, testRepo)
 	manageHandler := handlers.NewManageHandler(testRepo, feedbackRepo)
+	syllabusHandler := handlers.NewSyllabusHandler(syllabusRepo, testRepo)
+	revisionHandler := handlers.NewRevisionHandler(syllabusRepo, revisionRepo)
 
 	// Initialize auth middleware
 	authMiddleware := auth.NewMiddleware(s.sessionStore)
@@ -115,6 +119,23 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 			r.Get("/teacher/test/{id}/assign", teacherHandler.ShowAssignTest)
 			r.Post("/teacher/test/{id}/assign", teacherHandler.AssignTest)
 
+			// Syllabus management – admin and teacher
+			r.Get("/admin/syllabus", syllabusHandler.List)
+			r.Get("/admin/syllabus/new", syllabusHandler.ShowCreate)
+			r.Post("/admin/syllabus", syllabusHandler.Create)
+			r.Get("/admin/syllabus/{id}", syllabusHandler.ShowEdit)
+			r.Post("/admin/syllabus/{id}", syllabusHandler.Update)
+			r.Post("/admin/syllabus/{id}/publish", syllabusHandler.Publish)
+			r.Post("/admin/syllabus/{id}/unpublish", syllabusHandler.Unpublish)
+			r.Post("/admin/syllabus/{id}/section", syllabusHandler.AddSection)
+			r.Post("/admin/syllabus/{id}/section/{sid}/update", syllabusHandler.UpdateSection)
+			r.Post("/admin/syllabus/{id}/section/{sid}/delete", syllabusHandler.DeleteSection)
+			r.Post("/admin/syllabus/{id}/topic", syllabusHandler.AddTopic)
+			r.Post("/admin/syllabus/{id}/topic/{tid}/update", syllabusHandler.UpdateTopic)
+			r.Post("/admin/syllabus/{id}/topic/{tid}/delete", syllabusHandler.DeleteTopic)
+			r.Post("/admin/syllabus/{id}/topic/{tid}/tests", syllabusHandler.LinkTest)
+			r.Post("/admin/syllabus/{id}/topic/{tid}/tests/{testid}/delete", syllabusHandler.UnlinkTest)
+
 			// Admin-only routes
 			r.Group(func(r chi.Router) {
 				r.Use(authMiddleware.RequireRole("admin"))
@@ -137,6 +158,15 @@ func NewServer(db *database.Service, llmClient llm.QuestionGenerator) *Server {
 				r.Delete("/admin/users/{id}", adminHandler.DeleteUser)
 			})
 		})
+
+		// Revision planner – student routes (all authenticated users)
+		r.Get("/revision", revisionHandler.ShowRevision)
+		r.Get("/revision/plan/new", revisionHandler.ShowCreatePlan)
+		r.Post("/revision/plan", revisionHandler.CreatePlan)
+		r.Get("/revision/plan/{id}", revisionHandler.ShowPlan)
+		r.Post("/revision/session/{id}/complete", revisionHandler.CompleteSession)
+		r.Post("/revision/session/{id}/skip", revisionHandler.SkipSession)
+		r.Post("/revision/plan/{id}/delete", revisionHandler.DeletePlan)
 
 		// Notes viewing route (for students and teachers)
 		r.Get("/tests/{id}/notes", adminHandler.ServeTestNotes)
