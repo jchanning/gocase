@@ -77,7 +77,11 @@ $TMP_TAR = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "gocase-de
 Write-Host "  Creating archive: $TMP_TAR"
 
 # Resolve version from git tag (e.g. v0.1.0 -> 0.1.0), falling back to short SHA.
-$BUILD_VERSION = (git -C $PROJECT_ROOT describe --tags --exact-match 2>$null) -replace '^v',''
+# git describe exits 128 when no tag matches; suppress the error with a try/catch
+# so $ErrorActionPreference = "Stop" doesn't abort the script.
+$BUILD_VERSION = try {
+    (git -C $PROJECT_ROOT describe --tags --exact-match 2>$null) -replace '^v',''
+} catch { $null }
 if (-not $BUILD_VERSION) {
     $BUILD_VERSION = "0.0.0-$(git -C $PROJECT_ROOT rev-parse --short HEAD)"
 }
