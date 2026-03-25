@@ -124,13 +124,9 @@
                                         <a href="/teacher/test/{{.ID}}/assign" class="btn btn-secondary py-1 px-3 text-xs">Assign</a>
                                         {{end}}
                                         {{if .Published}}
-                                        <form method="post" action="/teacher/test/{{.ID}}/unpublish" class="inline">
-                                            <button type="submit" class="btn btn-secondary py-1 px-3 text-xs">Unpublish</button>
-                                        </form>
+                                        <button type="button" onclick="manageUnpublishTest({{.ID}})" class="btn btn-secondary py-1 px-3 text-xs">Unpublish</button>
                                         {{else if eq .ReviewStatus "approved"}}
-                                        <form method="post" action="/teacher/test/{{.ID}}/publish" class="inline">
-                                            <button type="submit" class="btn btn-primary py-1 px-3 text-xs">Publish</button>
-                                        </form>
+                                        <button type="button" onclick="managePublishTest({{.ID}})" class="btn btn-primary py-1 px-3 text-xs">Publish</button>
                                         {{end}}
                                     </div>
                                     {{if or (eq .ReviewStatus "draft") (eq .ReviewStatus "changes_requested")}}
@@ -266,4 +262,22 @@
         </div>
     </div>
 </div>
+
+<script>
+function managePublishTest(id) {
+    if (!confirm('Publish this test? Students will be able to take it.')) return;
+    fetch('/teacher/test/' + id + '/publish', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); else alert(d.message || 'Failed to publish'); })
+        .catch(() => alert('Failed to publish test'));
+}
+
+function manageUnpublishTest(id) {
+    if (!confirm('Unpublish this test? Students will no longer see it.')) return;
+    fetch('/teacher/test/' + id + '/unpublish', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => { if (d.success) location.reload(); else alert(d.message || 'Failed to unpublish'); })
+        .catch(() => alert('Failed to unpublish test'));
+}
+</script>
 {{end}}
