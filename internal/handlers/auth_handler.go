@@ -12,6 +12,7 @@ import (
 
 type authUserStore interface {
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByEmailOrUsername(ctx context.Context, identifier string) (*models.User, error)
 	Create(ctx context.Context, user *models.User) error
 	InitializeUserStats(ctx context.Context, userID int) error
 }
@@ -56,21 +57,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.FormValue("email")
+	identifier := r.FormValue("identifier")
 	password := r.FormValue("password")
 
-	// Get user by email
-	user, err := h.userRepo.GetByEmail(r.Context(), email)
+	// Look up by email or username
+	user, err := h.userRepo.GetByEmailOrUsername(r.Context(), identifier)
 	if err != nil {
-		log.Printf("Login failed for %s: user not found", email)
-		h.showLoginError(w, "Invalid email or password")
+		log.Printf("Login failed for %q: user not found", identifier)
+		h.showLoginError(w, "Invalid username/email or password")
 		return
 	}
 
 	// Check password
 	if !auth.CheckPasswordHash(password, user.PasswordHash) {
-		log.Printf("Login failed for %s: invalid password", email)
-		h.showLoginError(w, "Invalid email or password")
+		log.Printf("Login failed for %q: invalid password", identifier)
+		h.showLoginError(w, "Invalid username/email or password")
 		return
 	}
 

@@ -48,6 +48,26 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 	return user, nil
 }
 
+// GetByEmailOrUsername retrieves a user by email address or username (case-insensitive).
+func (r *UserRepository) GetByEmailOrUsername(ctx context.Context, identifier string) (*models.User, error) {
+	user := &models.User{}
+	query := `
+		SELECT id, email, password_hash, username, role, created_at, updated_at
+		FROM users
+		WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1)
+		LIMIT 1`
+
+	err := r.pool.QueryRow(ctx, query, identifier).Scan(
+		&user.ID, &user.Email, &user.PasswordHash, &user.Username,
+		&user.Role, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 // GetByID retrieves a user by ID
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, error) {
 	user := &models.User{}
